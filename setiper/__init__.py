@@ -147,14 +147,14 @@ class DatePeriod(object):
 
         tcs, tce = self.tcs, self.tce
         duration_days = relativedelta(tce, tcs).days
-        tce_next_sec = tce + relativedelta(second=1)
+        tce_next_sec = tce + relativedelta(seconds=1)
 
         # Test a number of conditions
         tcs_tce_same_month = tcs.year == tce.year and tcs.month == tce.month
         tcs_tce_same_day = duration_days < 1
         tcs_is_first_day_of_month = tcs.day == 1
         tce_is_last_day = tce.month != tce_next_sec.month
-        tcs_is_monday = tce.isoweekday() == 1
+        tcs_is_monday = tcs.isoweekday() == 1
         tce_is_sunday = tce.isoweekday() == 7
 
         if tcs_tce_same_day:
@@ -279,21 +279,21 @@ class DatePeriod(object):
         return self._period_type
 
     @property
-    def base_duration(self):
+    def duration(self):
         """ Return a duration object """
         if self.period_type == "monthly":
             return Duration(months=1)
         elif self.period_type == "daily":
             return Duration(days=1)
         else:
-            timedelta = relativedelta(dt1=self.tcs, dt2=self.tce)
-            return Duration(months=timedelta.months, days=timedelta.days,
-                            hours=timedelta.hours, minutes=timedelta.minutes,
-                            seconds=timedelta.seconds)
+            timedelta = relativedelta(dt1=self.tce, dt2=self.tcs)
+            return Duration(years=timedelta.years, months=timedelta.months, 
+                            days=timedelta.days, hours=timedelta.hours, 
+                            minutes=timedelta.minutes, seconds=timedelta.seconds)
 
     @property
-    def base_duration_isoformat(self):
-        return duration_isoformat(self.base_duration)
+    def duration_isoformat(self):
+        return duration_isoformat(self.duration)
 
     def __repr__(self):
         output = "Period object:\n"
