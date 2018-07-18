@@ -78,10 +78,13 @@ class DatePeriod(object):
         # 1. Check if datetime objects
         valid_start, valid_stop = False, False
         if isinstance(tcs, datetime):
-            self._tcs_dt = tcs
+            tcs_full_day = datetime(tcs.year, tcs.month, tcs.day)
+            self._tcs_dt = tcs_full_day
             valid_start = True
         if isinstance(tce, datetime):
-            self._tce_dt = tce
+            tce_full_day = datetime(tce.year, tce.month, tce.day)
+            tce_full_day = tce_full_day + relativedelta(days=1, microseconds=-1)
+            self._tce_dt = tce_full_day 
             valid_stop = True
 
         if valid_start and valid_stop:

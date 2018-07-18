@@ -15,22 +15,34 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
 
     def test_no_tcs_after_tce(self):
         self.assertRaises(ValueError, setiper.DatePeriod, [2018, 5, 1], [2018, 4, 1])
+        self.assertRaises(ValueError, setiper.DatePeriod, datetime(2018, 4, 2), datetime(2018, 4, 1))
 
-    def test_tce_completion(self):
+    def test_tcs_tce_always_full_days(self):
+        tcs_reference_dt = datetime(2018, 4, 1, 0, 0, 0)
+        tce_reference_dt = datetime(2018, 5, 1) - relativedelta(microseconds=1)
         prd = setiper.DatePeriod([2018, 4], [2018, 4])
-        reference_dt = datetime(2018, 5, 1) - relativedelta(microseconds=1)
-        self.assertEqual(prd.tce, reference_dt)
+        self.assertEqual(prd.tcs, tcs_reference_dt)
+        self.assertEqual(prd.tce, tce_reference_dt)
+        prd = setiper.DatePeriod(datetime(2018, 4, 1), datetime(2018, 4, 30))
+        self.assertEqual(prd.tcs, tcs_reference_dt)
+        self.assertEqual(prd.tce, tce_reference_dt)
 
     def test_period_type_detection_daily(self):
         prd = setiper.DatePeriod([2018, 4, 1], [2018, 4, 1])
+        self.assertEqual(prd.period_type, "daily")
+        prd = setiper.DatePeriod(datetime(2018, 4, 1), datetime(2018, 4, 1))
         self.assertEqual(prd.period_type, "daily")
 
     def test_period_type_detection_default_week(self):
         prd = setiper.DatePeriod([2018, 4, 2], [2018, 4, 8])
         self.assertEqual(prd.period_type, "default_week")
+        prd = setiper.DatePeriod(datetime(2018, 4, 2), datetime(2018, 4, 8))
+        self.assertEqual(prd.period_type, "default_week")
 
     def test_period_type_detection_monthly(self):
         prd = setiper.DatePeriod([2018, 4], [2018, 4])
+        self.assertEqual(prd.period_type, "monthly")
+        prd = setiper.DatePeriod(datetime(2018, 4, 1), datetime(2018, 4, 30))
         self.assertEqual(prd.period_type, "monthly")
 
     def test_daily_segmentation(self):
