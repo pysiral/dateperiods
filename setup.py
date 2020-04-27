@@ -9,7 +9,7 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='setiper',
+    name='dateperiods',
     version='0.1.0',
     description='Segments from Time (Date) Periods',
     long_description=readme,
