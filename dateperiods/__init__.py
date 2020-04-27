@@ -43,11 +43,11 @@ class DatePeriod(object):
         # Init the duration property
         self._duration = _DateDuration(self.tcs, self.tce)
 
-    def clip_to_period(self, start=None, end=None):
+    def clip(self, start=None, end=None):
         """
         Clip
-        :param range_start:
-        :param range_stop:
+        :param start:
+        :param end:
         :return:
         """
         """ Clip the current time range to an defined time range """
@@ -74,10 +74,14 @@ class DatePeriod(object):
         # return is_clipped
 
     def get_id(self, dt_fmt="%Y%m%dT%H%M%S"):
-        """ Returns an id of the period with customizable date format """
+        """
+        Returns an id of the period with customizable date format
+        :param dt_fmt: 
+        :return: 
+        """
         return self.tcs.dt.strftime(dt_fmt)+"_"+self.tce.dt.strftime(dt_fmt)
 
-    def get_period_segments(self, target_period, exclude_month=[]):
+    def get_segments(self, duration_type, exclude=None):
         """ Return a list of segments for the number of periods in the
         time range """
         pass
