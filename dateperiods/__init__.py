@@ -10,8 +10,9 @@ import numpy as np
 
 
 class DatePeriod(object):
-
-    _VALID_PERIOD_TYPES = ["monthly", "default_week", "daily"]
+    """
+    Container for managing periods of dates and their segmentation into sub-periods
+    """
 
     def __init__(self, tcs_def, tce_def):
         """
