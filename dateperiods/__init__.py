@@ -13,266 +13,250 @@ class DatePeriod(object):
 
     _VALID_PERIOD_TYPES = ["monthly", "default_week", "daily"]
 
-    def __init__(self, tcs, tce):
+    def __init__(self, tcs_def, tce_def):
+        """
+        Establish a period defined by the start (tcs) and end (tce) of the time coverage.
+        The start and end time can be specified with the following tpyes:
 
-        self._set_time_coverage(tcs, tce)
-        self._period_type = self._get_base_period()
-        
-    def clip_to_range(self, range_start, range_stop):
+            1) datetime.datetime
+            2) datetime.date
+            3) List/tuple of integers: [year, [month], [day]]
+
+        In case of option 3, the values for either (a) day or (b) month+day can be omitted and will be
+        automatically completed to the beginning, respective end of the month (a) or year (b).
+
+        :param tcs_def: The definition for the start of the time coverage.
+        :param tce_def: The definition for the end of the time coverage.
+        """
+
+        # Process the input date definitions
+        self._tcs = _DateDefinition(tcs_def, "tcs")
+        self._tce = _DateDefinition(tce_def, "tce")
+
+        # Make sure the period is valid, e.g. that start is before ends
+        if self._tce.dt < self._tcs.dt:
+            msg = "stop [%s] before end [%s]"
+            msg = msg % (str(self.tce.dt), str(self.tcs.dt))
+            raise ValueError(msg)
+
+        # Init the duration property
+        self._duration = _DateDuration(self.tcs, self.tce)
+
+    def clip_to_period(self, start=None, end=None):
+        """
+        Clip
+        :param range_start:
+        :param range_stop:
+        :return:
+        """
         """ Clip the current time range to an defined time range """
+        pass
 
-        is_clipped = False
-
-        if self._tcs_dt < range_start < self._tce_dt:
-            is_clipped = True
-            self._tcs_dt = range_start
-        elif self._tcs_dt < range_start and self._tce_dt < range_start:
-            is_clipped = True
-            self._tcs_dt = None
-            self._tce_dt = None
-
-        if self._tce_dt > range_stop > self._tcs_dt:
-            is_clipped = True
-            self._tce_dt = range_stop
-        elif self._tce_dt > range_stop and self._tcs_dt > range_stop:
-            is_clipped = True
-            self._tcs_dt = None
-            self._tce_dt = None
-
-        return is_clipped
+        # is_clipped = False
+        #
+        # if self._tcs_dt < range_start < self._tce_dt:
+        #     is_clipped = True
+        #     self._tcs_dt = range_start
+        # elif self._tcs_dt < range_start and self._tce_dt < range_start:
+        #     is_clipped = True
+        #     self._tcs_dt = None
+        #     self._tce_dt = None
+        #
+        # if self._tce_dt > range_stop > self._tcs_dt:
+        #     is_clipped = True
+        #     self._tce_dt = range_stop
+        # elif self._tce_dt > range_stop and self._tcs_dt > range_stop:
+        #     is_clipped = True
+        #     self._tcs_dt = None
+        #     self._tce_dt = None
+        #
+        # return is_clipped
 
     def get_id(self, dt_fmt="%Y%m%dT%H%M%S"):
         """ Returns an id of the period with customizable date format """
-        return self.tcs.strftime(dt_fmt)+"_"+self.tce.strftime(dt_fmt)
+        return self.tcs.dt.strftime(dt_fmt)+"_"+self.tce.dt.strftime(dt_fmt)
 
     def get_period_segments(self, target_period, exclude_month=[]):
         """ Return a list of segments for the number of periods in the
         time range """
+        pass
 
-        # monthly periods: return a list of time ranges that cover the full
-        # month from the first to the last month
-        if target_period == "monthly":
-            segments = self._get_monthly_period_segments(exclude_month)
+        # # monthly periods: return a list of time ranges that cover the full
+        # # month from the first to the last month
+        # if target_period == "monthly":
+        #     segments = self._get_monthly_period_segments(exclude_month)
+        #
+        # # default week periods: return a list of time ranges for each default
+        # # week definition (from Monday to Sunday)
+        # elif target_period == "default_week":
+        #     segments = self._get_default_week_period_segments(exclude_month)
+        #
+        # # daily periods: return a list of time ranges for each day
+        # # in the requested period (exclude_month still applies)
+        # elif target_period == "daily":
+        #     segments = self._get_daily_period_segments(exclude_month)
+        #
+        # # This should be caught before, but always terminate an
+        # # an if-elif-else
+        # else:
+        #     msg = "Invalid period: %s" % str(target_period)
+        #     raise ValueError(msg)
+        #
+        # return segments
 
-        # default week periods: return a list of time ranges for each default
-        # week definition (from Monday to Sunday)
-        elif target_period == "default_week":
-            segments = self._get_default_week_period_segments(exclude_month)
+    # def _get_base_period(self):
+    #     """ Use tcs and tce to identify the period type """
+    #     # Test a number of conditions
+    #
+    #
+    #     tcs_tce_same_month = self.tcs.year == self.tce.year and self.tcs.month == self.tce.month
+    #
+    #     # Same dates (period duration is daily)
+    #     tcs_tce_same_day = self.tcs.date == self.tce.date
+    #     if tcs_tce_same_day:
+    #         return "daily"
+    #
+    #     if self.tcs.is_monday and self.tce.is_sunday and duration_days == 6:
+    #         return "default_week"
+    #
+    #     if tcs_is_first_day_of_month and tcs_tce_same_month and tce_is_last_day:
+    #         return "monthly"
+    #
+    #     return "custom"
 
-        # daily periods: return a list of time ranges for each day
-        # in the requested period (exclude_month still applies)
-        elif target_period == "daily":
-            segments = self._get_daily_period_segments(exclude_month)
-
-        # This should be caught before, but always terminate an
-        # an if-elif-else
-        else:
-            msg = "Invalid period: %s" % str(target_period)
-            raise ValueError(msg)
-
-        return segments
-
-    def _set_time_coverage(self, tcs, tce):
-        """ Set the range of the request, tcs and stop_data can
-        be either int lists (year, month, [day]) or datetime objects """
-
-        # 1. Check if datetime objects
-        valid_start, valid_stop = False, False
-        if isinstance(tcs, datetime):
-            tcs_full_day = datetime(tcs.year, tcs.month, tcs.day)
-            self._tcs_dt = tcs_full_day
-            valid_start = True
-        if isinstance(tce, datetime):
-            tce_full_day = datetime(tce.year, tce.month, tce.day)
-            tce_full_day = tce_full_day + relativedelta(days=1, microseconds=-1)
-            self._tce_dt = tce_full_day 
-            valid_stop = True
-
-        if valid_start and valid_stop:
-            self._validate_range()
-            return
-
-        # 2. Check and decode integer lists
-        msg_template = "invalid %s time (not integer list or datetime)"
-        if isinstance(tcs, list):
-            if all(isinstance(item, int) for item in tcs):
-                self._tcs_dt = self._decode_int_list(tcs, "start")
-            else:
-                raise ValueError(msg_template)
-
-        if isinstance(tce, list):
-            if all(isinstance(item, int) for item in tce):
-                self._tce_dt = self._decode_int_list(tce, "stop")
-            else:
-                raise ValueError(msg_template)
-
-        # 4. Check range
-        self._validate_range()
-
-
-
-    def _validate_range(self):
-        # Check if start and stop are in the right order
-        if self.tce <= self.tcs:
-            msg = "stop [%s] before start [%s]"
-            msg = msg % (str(self.tce), str(self.tcs))
-            raise ValueError(msg)
-
-    def _get_base_period(self):
-        """ Use tcs and tce to identify the period type """
-
-        tcs, tce = self.tcs, self.tce
-        duration_days = relativedelta(tce, tcs).days
-        tce_next_sec = tce + relativedelta(seconds=1)
-
-        # Test a number of conditions
-        tcs_tce_same_month = tcs.year == tce.year and tcs.month == tce.month
-        tcs_tce_same_day = duration_days < 1
-        tcs_is_first_day_of_month = tcs.day == 1
-        tce_is_last_day = tce.month != tce_next_sec.month
-        tcs_is_monday = tcs.isoweekday() == 1
-        tce_is_sunday = tce.isoweekday() == 7
-
-        if tcs_tce_same_day:
-            return "daily"
-
-        if tcs_is_monday and tce_is_sunday and duration_days == 6:
-            return "default_week"
-
-        if tcs_is_first_day_of_month and tcs_tce_same_month and tce_is_last_day:
-            return "monthly"
-
-        return "custom"
-
-    def _get_monthly_period_segments(self, exclude_month=[]):
-        """ Create a list of segments with calendar monthly base period """
-        # Create Iterations
-        segments = []
-        months = month_list(self.tcs, self.tce, exclude_month)
-        n_segments = len(months)
-        index = 1
-
-        # Loop over all calendar month in the period
-        for year, month in months:
-
-            # Per default get the full month
-            period_start, period_stop = get_month_time_range(year, month)
-
-            # Clip time range to actual days for first and last iteration
-            # (only if the first and the last month are not in the
-            #  exclude_month list)
-            first_month = self.tcs.month
-            first_month_excluded = first_month in exclude_month
-            if index == 1 and not first_month_excluded:
-                period_start = self.tcs
-
-            last_month = self.tce.month
-            last_month_excluded = last_month in exclude_month
-            if index == n_segments and not last_month_excluded:
-                period_stop = self.tce
-
-            # set final time range
-            # iteration will be a of type TimeRangeIteration
-            time_range = DatePeriod(period_start, period_stop)
-            segments.append(time_range)
-            index += 1
-
-        return segments
-
-    def _get_default_week_period_segments(self, exclude_month=[]):
-        """ Create iterator with default_week (Monday throught Sunday)
-        period """
-
-        # Start with empty iteration
-        iterations = []
-        index = 1
-
-        # Get the start date: period start date (if is monday) or previous
-        # monday. If the day is not monday we can use the isoweekday
-        # (monday=1, sunday=7) to compute the number days we have to subtract
-        # from the start day of the period
-        start_offset_days = self.tcs.isoweekday() - 1
-        week_start_day = self.tcs - relativedelta(days=start_offset_days)
-
-        # Same for the stop date: Make sure the end date either a Sunday
-        # already or a Sunday after the stop date of the period
-        stop_offset_days = 7 - self.tce.isoweekday()
-        week_stop_day = self.tce + relativedelta(days=stop_offset_days)
-
-        # Get the list of weeks
-        weeks = weeks_list(week_start_day, week_stop_day, exclude_month)
-
-        for start_day, stop_day in weeks:
-
-            # weeks list provide only a
-            start = datetime(start_day[0], start_day[1], start_day[2])
-            stop = start + relativedelta(days=7, microseconds=-1)
-
-            # set final time range
-            # iteration will be a of type TimeRangeIteration
-            time_range = DatePeriod(start, stop)
-            iterations.append(time_range)
-            index += 1
-
-        return iterations
-
-    def _get_daily_period_segments(self, exclude_month=[]):
-        """ Create iterator with daily period """
-
-        # Get list of days
-        days = days_list(self.tcs, self.tce, exclude_month)
-        iterations = []
-        
-        # Loop over days
-        for year, month, day in days:
-
-            # Start and stop are beginning/end of day
-            start = datetime(year, month, day)
-            stop = start + relativedelta(days=1, microseconds=-1)
-
-            # Create the iteration
-            time_range = DatePeriod(start, stop)
-            iterations.append(time_range)
-        
-        return iterations
+    # def _get_monthly_period_segments(self, exclude_month=[]):
+    #     """ Create a list of segments with calendar monthly base period """
+    #     # Create Iterations
+    #     segments = []
+    #     months = month_list(self.tcs, self.tce, exclude_month)
+    #     n_segments = len(months)
+    #     index = 1
+    #
+    #     # Loop over all calendar month in the period
+    #     for year, month in months:
+    #
+    #         # Per default get the full month
+    #         period_start, period_stop = get_month_time_range(year, month)
+    #
+    #         # Clip time range to actual days for first and last iteration
+    #         # (only if the first and the last month are not in the
+    #         #  exclude_month list)
+    #         first_month = self.tcs.month
+    #         first_month_excluded = first_month in exclude_month
+    #         if index == 1 and not first_month_excluded:
+    #             period_start = self.tcs
+    #
+    #         last_month = self.tce.month
+    #         last_month_excluded = last_month in exclude_month
+    #         if index == n_segments and not last_month_excluded:
+    #             period_stop = self.tce
+    #
+    #         # set final time range
+    #         # iteration will be a of type TimeRangeIteration
+    #         time_range = DatePeriod(period_start, period_stop)
+    #         segments.append(time_range)
+    #         index += 1
+    #
+    #     return segments
+    #
+    # def _get_default_week_period_segments(self, exclude_month=[]):
+    #     """ Create iterator with default_week (Monday throught Sunday)
+    #     period """
+    #
+    #     # Start with empty iteration
+    #     iterations = []
+    #     index = 1
+    #
+    #     # Get the start date: period start date (if is monday) or previous
+    #     # monday. If the day is not monday we can use the isoweekday
+    #     # (monday=1, sunday=7) to compute the number days we have to subtract
+    #     # from the start day of the period
+    #     start_offset_days = self.tcs.dt.isoweekday() - 1
+    #     week_start_day = self.tcs.dt - relativedelta(days=start_offset_days)
+    #
+    #     # Same for the stop date: Make sure the end date either a Sunday
+    #     # already or a Sunday after the stop date of the period
+    #     stop_offset_days = 7 - self.tce.dt.isoweekday()
+    #     week_stop_day = self.tce.dt + relativedelta(days=stop_offset_days)
+    #
+    #     # Get the list of weeks
+    #     weeks = weeks_list(week_start_day, week_stop_day, exclude_month)
+    #
+    #     for start_day, stop_day in weeks:
+    #
+    #         # weeks list provide only a
+    #         start = datetime(start_day[0], start_day[1], start_day[2])
+    #         stop = start + relativedelta(days=7, microseconds=-1)
+    #
+    #         # set final time range
+    #         # iteration will be a of type TimeRangeIteration
+    #         time_range = DatePeriod(start, stop)
+    #         iterations.append(time_range)
+    #         index += 1
+    #
+    #     return iterations
+    #
+    # def _get_daily_period_segments(self, exclude_month=[]):
+    #     """ Create iterator with daily period """
+    #
+    #     # Get list of days
+    #     days = days_list(self.tcs, self.tce, exclude_month)
+    #     iterations = []
+    #
+    #     # Loop over days
+    #     for year, month, day in days:
+    #
+    #         # Start and stop are beginning/end of day
+    #         start = datetime(year, month, day)
+    #         stop = start + relativedelta(days=1, microseconds=-1)
+    #
+    #         # Create the iteration
+    #         time_range = DatePeriod(start, stop)
+    #         iterations.append(time_range)
+    #
+    #     return iterations
 
     @property
     def tcs(self):
         """ tcs: time coverage start as datetime object """
-        return self._tcs_dt
+        return self._tcs
 
     @property
     def tce(self):
         """ tce: time coverage end as datetime object """
-        return self._tce_dt
-
-    @property
-    def label(self):
-        return str(self.tcs)+" till "+str(self.tce)
-
-    @property
-    def period_type(self):
-        return self._period_type
+        return self._tce
 
     @property
     def duration(self):
-        """ Return a duration object """
-        if self.period_type == "monthly":
-            return Duration(months=1)
-        elif self.period_type == "daily":
-            return Duration(days=1)
-        else:
-            timedelta = relativedelta(dt1=self.tce, dt2=self.tcs)
-            return Duration(years=timedelta.years, months=timedelta.months, 
-                            days=timedelta.days, hours=timedelta.hours, 
-                            minutes=timedelta.minutes, seconds=timedelta.seconds)
+        return self._duration
 
     @property
-    def duration_isoformat(self):
-        return duration_isoformat(self.duration)
+    def label(self):
+        return str(self.tcs.dt)+" till "+str(self.tce.dt)
+
+    # @property
+    # def period_type(self):
+    #     return self._period_type
+
+    # @property
+    # def duration(self):
+    #     """ Return a duration object """
+    #     if self.period_type == "monthly":
+    #         return Duration(months=1)
+    #     elif self.period_type == "daily":
+    #         return Duration(days=1)
+    #     else:
+    #         tdelta = relativedelta(dt1=self.tce.dt, dt2=self.tcs.dt)
+    #         return Duration(years=tdelta.years, months=tdelta.months,
+    #                         days=tdelta.days, hours=tdelta.hours,
+    #                         minutes=tdelta.minutes, seconds=tdelta.seconds)
+    #
+    # @property
+    # def duration_isoformat(self):
+    #     return duration_isoformat(self.duration)
 
     def __repr__(self):
-        output = "Period object:\n"
+        output = "DatePeriod:\n"
         for field in ["tcs", "tce"]:
             output += "%12s: %s" % (field, getattr(self, field))
             output += "\n"
@@ -285,7 +269,7 @@ class _DateDefinition(object):
     to either define a date or generate from year, year+month, year+month+day lists
     """
 
-    def __init__(self, date_def, tcs_or_tce: str):
+    def __init__(self, date_def, tcs_or_tce: str) -> None:
         """
         Creates date container from various input formats. Valid date definitions are:
             1. datetime.datetime
@@ -341,6 +325,11 @@ class _DateDefinition(object):
             msg = msg.format(type(self._date_def))
             raise ValueError(msg)
 
+        # All done, safe properties
+        self._year = year
+        self._month = month
+        self._day = day
+
     @staticmethod
     def _decode_int_list(int_list: List[int], tcs_or_tce: str):
         """ Returns a datetime object from a integer date list of type [yyyy, mm, [dd]].
@@ -383,26 +372,42 @@ class _DateDefinition(object):
 
     @property
     def year(self):
+        """
+        The year as integer number
+        :return: int
+        """
         return int(self._year)
 
     @property
     def month(self):
+        """
+        The month as integer number
+        :return: int
+        """
         return int(self._month)
 
     @property
     def day(self):
+        """
+        The day as integer number
+        :return: int
+        """
         return int(self._day)
 
     @property
     def date(self):
+        """
+        The date definition as datetime.date
+        :return: datetime.date
+        """
         return date(self.year, self.month, self.day)
 
     @property
     def dt(self):
         """
-        Return the date as datetime object. Note: if this date definition is the end of the time coverage,
+        The date as datetime object. Note: if this date definition is the end of the time coverage,
         the time coverage will be extended to 23:59:59.9999 of the date
-        :return:
+        :return: datetime.datetime
         """
         dt = datetime(self.year, self.month, self.day)
         if self.type == "tce":
@@ -410,22 +415,178 @@ class _DateDefinition(object):
             dt = dt + extra_period
         return dt
 
-
     @property
     def type(self):
         return str(self._tcs_or_tce)
 
     @property
     def is_tcs(self):
+        """
+        Flag if the date definition is marked as the beginning of the time coverage
+        :return: bool
+        """
         return self.type == "tcs"
 
     @property
     def is_tce(self):
+        """
+        Flag if the date definition is marked as the end of the time coverage
+        :return: bool
+        """
         return self.type == "tce"
 
     @property
+    def is_monday(self):
+        """
+        Flag if the current day is a Monday
+        :return: bool
+        """
+        return self.dt.isoweekday() == 1
+
+    @property
+    def is_sunday(self):
+        """
+        Flag if the current day is a Sunday
+        :return: bool
+        """
+        return self.dt.isoweekday() == 7
+
+    @property
+    def is_last_day_of_month(self):
+        """
+        Flag if the current day is the last day in a month
+        :return: bool
+        """
+        next_date = self.dt + relativedelta(days=1)
+        return self.dt.month != next_date.month
+
+    @property
     def valid_tcs_or_tce_values(self):
+        """
+        The valid tags for time coverage start and time coverage end
+        :return: str list
+        """
         return list(["tcs", "tce"])
+
+
+class _DateDuration(object):
+    """
+    Container for duration parameters of the period between two dates
+    """
+
+    def __init__(self, tcs: _DateDefinition, tce: _DateDefinition):
+        """
+        Compute the duration between two dates
+        :param tcs: _DateDefinition
+        :param tce: _DateDefinition
+        """
+
+        # Basic sanity check
+        if tce.dt <= tcs.dt:
+            raise ValueError("End {} <= Start {}".format(tcs, tce))
+
+        # Arguments
+        self._tcs = tcs
+        self._tce = tce
+
+    @property
+    def tcs(self):
+        return self._tcs
+
+    @property
+    def tce(self):
+        return self._tce
+
+    @property
+    def total_seconds(self):
+        """
+        The number of seconds
+        :return: int
+        """
+        return (self.tce.dt-self.tcs.dt).total_seconds()
+
+    @property
+    def total_days(self):
+        """
+        Number of days between start and end (1 if both are the same day)
+        :return: int
+        """
+        return relativedelta(self.tce.dt, self.tcs.dt).days + 1
+
+    @property
+    def is_day(self):
+        """
+        Flag if the period is a full month
+        :return: bool
+        """
+        return self.tcs.date == self.tce.date
+
+    @property
+    def is_isoweek(self):
+        """
+        Flag if period is a default week (Monday to following Sunday)
+        :return:
+        """
+        return self.tcs.is_monday and self.tce.is_sunday and self.total_days == 7
+
+    @property
+    def is_month(self):
+        """
+        Compute flag if the period is a full month
+        :return: bool
+        """
+
+        # Must be same month
+        condition1 = [self.tcs.dt.year, self.tcs.dt.month] == [self.tce.dt.year, self.tce.dt.month]
+
+        # Start must be first day of month
+        condition2 = self.tcs.day == 1
+
+        # Stop must be last day of month
+        condition3 = self.tce.is_last_day_of_month
+
+        return condition1 and condition2 and condition3
+
+    @property
+    def is_year(self):
+        """
+        Compute flag if the period is a full year
+        :return: bool
+        """
+
+        # Must be same month
+        condition1 = [self.tcs.month, self.tcs.day] == [1, 1]
+
+        # Start must be first day of month
+        condition2 = [self.tce.month, self.tce.day] == [12, 31]
+
+        # Stop must be last day of month
+        condition3 = self.tcs.year == self.tce.year
+
+        return condition1 and condition2 and condition3
+
+    @property
+    def duration(self):
+        """
+        Return a duration
+        :return:
+        """
+        """ Return a duration object """
+        if self.is_day:
+            return Duration(days=1)
+        elif self.is_month:
+            return Duration(months=1)
+        elif self.is_year:
+            return Duration(years=1)
+        else:
+            tdelta = relativedelta(dt1=self.tce.dt, dt2=self.tcs.dt)
+            return Duration(years=tdelta.years, months=tdelta.months,
+                            days=tdelta.days, hours=tdelta.hours,
+                            minutes=tdelta.minutes, seconds=tdelta.seconds+1)
+
+    @property
+    def isoformat(self):
+        return duration_isoformat(self.duration)
 
 
 def month_list(start_dt, stop_dt, exclude_month=[]):
@@ -438,6 +599,7 @@ def month_list(start_dt, stop_dt, exclude_month=[]):
     month_list = [entry for entry in month_list if (
         entry[1] not in exclude_month)]
     return month_list
+
 
 def weeks_list(start_dt, stop_dt, exclude_month=[]):
     """ Returns a list of all weeks (start_dt + 7 days) in the period.
