@@ -615,8 +615,30 @@ class _DateDuration(object):
     def isoformat(self):
         return duration_isoformat(self.duration)
 
+    @property
+    def type(self):
+        """
+        Return a classifier that indicates the period duration type
+        (e.g. year, month, isoweek, day, custom)
+        :return: str
+        """
 
-def month_list(start_dt, stop_dt, exclude_month=[]):
+        if self.is_year:
+            return "year"
+
+        if self.is_month:
+            return "month"
+
+        if self.is_isoweek:
+            return "isoweek"
+
+        if self.is_day:
+            return "day"
+
+        return "custom"
+
+
+def month_list(start_dt, stop_dt, exclude=None):
     """ Returns a list of all month (exclude_month applies) """
     # Get an iterator for integer year and month
     month_list = month_iterator(
@@ -624,7 +646,7 @@ def month_list(start_dt, stop_dt, exclude_month=[]):
         stop_dt.year, stop_dt.month)
     # Filter month that are excluded from processing
     month_list = [entry for entry in month_list if (
-        entry[1] not in exclude_month)]
+        entry[1] not in exclude)]
     return month_list
 
 

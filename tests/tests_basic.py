@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from context import dateperiods
 
@@ -13,6 +14,7 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
     def test_date_int_list_len(self):
         self.assertRaises(TypeError, dateperiods.DatePeriod, [])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [], [2018, 4, 1])
+        self.assertRaises(ValueError, dateperiods.DatePeriod, None, [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [2018, 4, 1, 1], [2018, 4, 1])
 
     def test_no_tcs_after_tce(self):
@@ -36,8 +38,8 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_month)
-        isoformat = duration.isoformat
-        self.assertTrue(isoformat == "P1Y", msg="P1Y -> {}".format(isoformat))
+        self.assertEqual(duration.isoformat, "P1Y")
+        self.assertEqual(duration.type, "year")
 
     def test_duration_month(self):
         prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
@@ -46,8 +48,8 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_year)
-        isoformat = duration.isoformat
-        self.assertTrue(isoformat == "P1M", msg="P1M -> {}".format(isoformat))
+        self.assertEqual(duration.isoformat, "P1M")
+        self.assertEqual(duration.type, "month")
 
     def test_duration_isoweek(self):
         prd = dateperiods.DatePeriod([2018, 4, 2], [2018, 4, 8])
@@ -56,17 +58,28 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_month)
         self.assertFalse(duration.is_year)
-        isoformat = duration.isoformat
-        self.assertTrue(isoformat == "P7D", msg="P7D -> {}".format(isoformat))
+        self.assertEqual(duration.isoformat, "P7D")
+        self.assertEqual(duration.type, "isoweek")
 
     def test_duration_day(self):
         prd = dateperiods.DatePeriod([2018, 4, 1], [2018, 4, 1])
         duration = prd.duration
         self.assertTrue(duration.is_day)
         self.assertFalse(duration.is_month)
+        self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_year)
-        isoformat = duration.isoformat
-        self.assertTrue(isoformat == "P1D", msg="P1D -> {}".format(isoformat))
+        self.assertEqual(duration.isoformat, "P1D")
+        self.assertEqual(duration.type, "day")
+
+    def test_duration_custom(self):
+        prd = dateperiods.DatePeriod([2018, 4, 1], [2018, 4, 2])
+        duration = prd.duration
+        self.assertFalse(duration.is_day)
+        self.assertFalse(duration.is_month)
+        self.assertFalse(duration.is_isoweek)
+        self.assertFalse(duration.is_year)
+        self.assertEqual(duration.isoformat, "P2D")
+        self.assertEqual(duration.type, "custom")
 
     def test_netcdf_attribute_dict(self):
         prd = dateperiods.DatePeriod([2018, 4, 1], [2018, 4, 1])
