@@ -11,6 +11,7 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
     """A standard list of test cases."""
 
     def test_date_int_list_len(self):
+        self.assertRaises(TypeError, dateperiods.DatePeriod, [])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [], [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [2018, 4, 1, 1], [2018, 4, 1])
 
@@ -67,6 +68,17 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
         isoformat = duration.isoformat
         self.assertTrue(isoformat == "P1D", msg="P1D -> {}".format(isoformat))
 
+    def test_netcdf_attribute_dict(self):
+        prd = dateperiods.DatePeriod([2018, 4, 1], [2018, 4, 1])
+        attr_dict = prd.get_netcdf_attributes(zulu=True)
+        self.assertTrue("time_coverage_start" in attr_dict)
+        self.assertEqual(attr_dict["time_coverage_start"], "20180401T000000Z")
+        self.assertTrue("time_coverage_end" in attr_dict)
+        self.assertEqual(attr_dict["time_coverage_end"], "20180401T235959Z")
+        self.assertTrue("time_coverage_duration" in attr_dict)
+        self.assertEqual(attr_dict["time_coverage_duration"], "P1D")
+        self.assertTrue("time_coverage_resolution" in attr_dict)
+        self.assertEqual(attr_dict["time_coverage_resolution"], "P1D")
 
     # def test_daily_segmentation(self):
     #     prd = dateperiods.DatePeriod([2018, 4], [2018, 4])

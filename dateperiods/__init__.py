@@ -86,6 +86,28 @@ class DatePeriod(object):
         time range """
         pass
 
+    def get_netcdf_attributes(self, zulu=True):
+        """
+        Get a dictionary with standard netCDF attributes for a period
+
+        time_coverage_start: 20120131T070000Z
+        time_coverage_end: 20120131T083000Z
+        time_coverage_duration: P1Y
+        time_coverage_resolution: P1D
+
+        :param zulu: bool: If true (default) the datetime str will contain a `Z` timezone indicator
+
+        :return: dict
+        """
+        dt_fmt = "%Y%m%dT%H%M%S"
+        if zulu:
+            dt_fmt = dt_fmt + "Z"
+        ncattrs = dict(time_coverage_start=self.tcs.dt.strftime(dt_fmt),
+                       time_coverage_end=self.tce.dt.strftime(dt_fmt),
+                       time_coverage_duration=self.duration.isoformat,
+                       time_coverage_resolution=self.duration.isoformat)
+        return ncattrs
+
         # # monthly periods: return a list of time ranges that cover the full
         # # month from the first to the last month
         # if target_period == "monthly":
