@@ -81,10 +81,24 @@ class DatePeriod(object):
         """
         return self.tcs.dt.strftime(dt_fmt)+"_"+self.tce.dt.strftime(dt_fmt)
 
-    def get_segments(self, duration_type, exclude=None):
-        """ Return a list of segments for the number of periods in the
-        time range """
-        pass
+    def get_segments(self, duration_type: str, **filter_kwargs):
+        """
+        Return an iterator that divides the period into the segments with the specified duration.
+        The iterations will be of type DatePeriod. If a duration is longer than the duration of the
+        base period, the iterator will contain the iterations of the base period where this period will
+        intersect.
+
+        In addition, the resulting iterator can be filtered, according to the filter rules of the
+        PeriodIterator class
+
+        :param duration_type:
+        :param filter_kwargs:
+        :return: 
+        """
+
+        # NOTE: Sanity Check of input args will be done in the PeriodIterator instance
+        prditer = PeriodIterator(self, duration_type)
+        return prditer
 
     def get_netcdf_attributes(self, zulu=True):
         """
@@ -288,6 +302,116 @@ class DatePeriod(object):
             output += "%12s: %s" % (field, getattr(self, field))
             output += "\n"
         return output
+
+
+class PeriodIterator(object):
+    """
+    Class that allows to segment a period into subset periods of a given duration. The class then can be used
+    as an iterator, but also filtered after initial segmentation
+    """
+
+    def __init__(self, base_period: DatePeriod, segment_duration: str):
+        """
+        Create an iterator over a segmented of a base period with a given duration
+        :param base_period:
+        :param segment_duration:
+        """
+
+        # Store args
+        self.base_period = base_period
+        if segment_duration not in self.valid_segment_duration:
+            msg = "Invalid segment duration: {} [{}]"
+            msg = msg.format(segment_duration, ",".join(self.valid_segment_duration))
+            raise ValueError(msg)
+        self.segment_duration = segment_duration
+
+        # Construct the list of periods
+        self._segment_list = []
+        self._get_segment_list()
+
+    def _get_segment_list(self):
+        """
+        Compute the list of segments from the input
+        :return:
+        """
+
+        # Dictionary of methods that will be called to get a list of tcs/tce's for each segment
+        # based on the choice of segment_duration
+        funcs = dict(day=self.get_days, isoweek=self.get_isoweeks, month=self.get_months)
+        base_tcs, base_tce = self.base_period.tcs.dt, self.base_period.tce.dt
+        for period_def in funcs[self.segment_duration](base_tcs, base_tce):
+            self._segment_list.append(DatePeriod(period_def, period_def))
+
+    @staticmethod
+    def days_list(year, month):
+        """ returns an iterator over all days in given month """
+        all_days = calendar.monthrange(year, month)
+        start = datetime(year, month, 1)
+        end = datetime(year, month, all_days[-1])
+        return [(d.year, d.month, d.day) for d in rrule(DAILY, dtstart=start, until=end)]
+
+    @staticmethod
+    def months_list(start_year, start_month, end_year, end_month):
+        """ returns an iterator over months """
+        start = datetime(start_year, start_month, 1)
+        end = datetime(end_year, end_month, 1)
+        return [(d.year, d.month) for d in rrule(MONTHLY, dtstart=start, until=end)]
+
+    @classmethod
+    def get_days(cls, start_dt, end_dt):
+        """ Returns a list of all days (exclude_month applies) """
+        days = []
+        months = cls.get_months(start_dt, end_dt)
+        n_month = len(months)
+        start_day, stop_day = start_dt.day, end_dt.day
+        for i, month in enumerate(months):
+            # List of all days in given month
+            monthly_days = cls.days_list(*month)
+            # Clip potential omitted days in the start request
+            if i == 0:
+                monthly_days = [d for d in monthly_days if d[2] >= start_day]
+            # Clip potential omitted days in the stop request
+            if i == n_month - 1:
+                monthly_days = [d for d in monthly_days if d[2] <= stop_day]
+            days.extend(monthly_days)
+        return days
+
+    @classmethod
+    def get_isoweeks(cls, start_dt, end_dt):
+        """ Returns a list of all weeks (start_dt + 7 days) in the period.
+        exclude_month is applied, but partial overlap of weeks and exclude_month
+        is allowed """
+
+        weeks = []
+        # Get the number of weeks (without exclude month)
+        list_of_days = cls.get_days(start_dt, end_dt)
+        n_weeks = np.ceil(float(len(list_of_days)) / 7.).astype(int)
+
+        for i in np.arange(n_weeks):
+
+            # Compute start and stop date for each week
+            d1 = start_dt + relativedelta(days=int(i * 7))
+            d2 = start_dt + relativedelta(days=int((i + 1) * 7 - 1))
+
+            # store start and stop day for each week
+            weeks.append([[d1.year, d1.month, d1.day], [d2.year, d2.month, d2.day]])
+
+        return weeks
+
+    @classmethod
+    def get_months(cls, start_dt, end_dt):
+        """ Returns a list of all month (exclude_month applies) """
+        # Get an iterator for integer year and month
+        months = cls.months_list(start_dt.year, start_dt.month, end_dt.year, end_dt.month)
+        return months
+
+    @property
+    def valid_segment_duration(self):
+        return ["month", "isoweek", "day"]
+
+    @property
+    def n_periods(self):
+        return len(self._segment_list)
 
 
 class _DateDefinition(object):
@@ -636,84 +760,3 @@ class _DateDuration(object):
             return "day"
 
         return "custom"
-
-
-def month_list(start_dt, stop_dt, exclude=None):
-    """ Returns a list of all month (exclude_month applies) """
-    # Get an iterator for integer year and month
-    month_list = month_iterator(
-        start_dt.year, start_dt.month,
-        stop_dt.year, stop_dt.month)
-    # Filter month that are excluded from processing
-    month_list = [entry for entry in month_list if (
-        entry[1] not in exclude)]
-    return month_list
-
-
-def weeks_list(start_dt, stop_dt, exclude_month=[]):
-    """ Returns a list of all weeks (start_dt + 7 days) in the period.
-    exclude_month is applied, but partial overlap of weeks and exclude_month
-    is allowed """
-
-    weeks = []
-    # Get the number of weeks (without exclude month)
-    list_of_days = days_list(start_dt, stop_dt, [])
-    n_weeks = np.ceil(float(len(list_of_days))/7.).astype(int)
-
-    for i in np.arange(n_weeks):
-
-        # Compute start and stop date for each week
-        d1 = start_dt + relativedelta(days=int(i*7))
-        d2 = start_dt + relativedelta(days=int((i+1)*7-1))
-
-        # exclude month only applies when both start and stop day of the week
-        # are in an excluded month (partial overlap is allowed)
-        if d1.month in exclude_month and d2.month in exclude_month:
-            continue
-
-        # store start and stop day for each week
-        weeks.append([[d1.year, d1.month, d1.day],
-                      [d2.year, d2.month, d2.day]])
-
-    return weeks
-
-
-def days_list(start_dt, stop_dt, exclude_month=[]):
-    """ Returns a list of all days (exclude_month applies) """
-    days = []
-    months = month_list(start_dt, stop_dt, exclude_month)
-    n_month = len(months)
-    start_day, stop_day = start_dt.day, stop_dt.day
-    for i, month in enumerate(months):
-        # List of all days in given month
-        monthly_days = days_iterator(*month)
-        # Clip potential omitted days in the start request
-        if i == 0:
-            monthly_days = [d for d in monthly_days if d[2] >= start_day]
-        # Clip potential omitted days in the stop request
-        if i == n_month-1:
-            monthly_days = [d for d in monthly_days if d[2] <= stop_day]
-        days.extend(monthly_days)
-    return days
-
-
-def month_iterator(start_year, start_month, end_year, end_month):
-    """ returns an iterator over months """
-    start = datetime(start_year, start_month, 1)
-    end = datetime(end_year, end_month, 1)
-    return [(d.year, d.month) for d in rrule(MONTHLY, dtstart=start, until=end)]
-
-
-def days_iterator(year, month):
-    """ returns an iterator over all days in given month """
-    all_days = calendar.monthrange(year, month)
-    start = datetime(year, month, 1)
-    end = datetime(year, month, all_days[-1])
-    return [(d.year, d.month, d.day) for d in rrule(DAILY, dtstart=start, until=end)]
-
-
-def get_month_time_range(year, month):
-    """ Returns the a start and stop datetime object for a given month """
-    start_dt = datetime(year, month, 1)
-    stop_dt = start_dt + relativedelta(months=1, microseconds=-1)
-    return start_dt, stop_dt
