@@ -9,13 +9,20 @@ import unittest
 
 
 class BasicFunctionalityTestSuite(unittest.TestCase):
-    """A standard list of test cases."""
+    """A standard list of test cases """
 
     def test_date_int_list_len(self):
         self.assertRaises(TypeError, dateperiods.DatePeriod, [])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [], [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, None, [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [2018, 4, 1, 1], [2018, 4, 1])
+
+    def test_date_flags(self):
+        prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
+        self.assertTrue(prd.tcs.is_tcs)
+        self.assertFalse(prd.tcs.is_tce)
+        self.assertTrue(prd.tce.is_tce)
+        self.assertFalse(prd.tce.is_tcs)
 
     def test_no_tcs_after_tce(self):
         self.assertRaises(ValueError, dateperiods.DatePeriod, [2018, 5, 1], [2018, 4, 1])
@@ -116,7 +123,6 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
     #     prds = prd.get_period_segments("monthly", exclude_month=[5, 6, 7, 8, 9])
     #     self.assertEqual(len(prds), 8)
     #     self.assertEqual(prds[0].period_type, "monthly")
-
 
 
 if __name__ == '__main__':
