@@ -1,4 +1,6 @@
-setiper: Segmentation of Time (Date) Periods
-============================================
+dateperiods: Managing date-based periods in python
+==================================================
+
+
 
 
