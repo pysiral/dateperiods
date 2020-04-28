@@ -1,11 +1,27 @@
+# -*- coding: utf-8 -*-
+
+"""
+
+"""
+
+
+import calendar
+from typing import List
+import numpy as np
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
 from isodate.duration import Duration
 from isodate import duration_isoformat
-import calendar
-from typing import List
-import numpy as np
+
+
+# Package Metadata
+__version__ = "1.0"
+__author__ = "Stefan Hendricks"
+__author_email__ = "stefan.hendricks@awi.de"
+
+# Imports
+__all__ = ["DatePeriod", "PeriodIterator"]
 
 
 class DatePeriod(object):

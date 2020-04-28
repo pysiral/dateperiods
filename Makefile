@@ -2,4 +2,4 @@ init:
 	pip install -r requirements.txt
 
 test:
-	nosetests tests
+	python -m unittest discover -s tests -t tests
