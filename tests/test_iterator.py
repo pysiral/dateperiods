@@ -100,5 +100,66 @@ class IteratorCroppingFunctionalityTestSuite(unittest.TestCase):
         self.assertEqual(second_segment.tce.date, date(2019, 5, 15))
 
 
+class IteratorMonthFilterFunctionalityTestSuite(unittest.TestCase):
+    """ Testing the segmentation of Periods """
+
+    def test_input_args(self):
+        prd = dateperiods.DatePeriod([2010], [2010])
+        segments = prd.get_segments("month")
+        self.assertRaises(TypeError, segments.filter_month)
+        self.assertRaises(ValueError, segments.filter_month, "monthly")
+        self.assertRaises(ValueError, segments.filter_month, ["monthly"])
+        self.assertRaises(ValueError, segments.filter_month, 0)
+        self.assertRaises(ValueError, segments.filter_month, 13)
+
+    def test_month_filter_daily_duration(self):
+        prd = dateperiods.DatePeriod([2011], [2011])
+        segments = prd.get_segments("day")
+        months_to_exclude = [5, 6, 7, 8, 9]
+        segments.filter_month(months_to_exclude)
+        # 2011 is not a leap year, month May through Sep are 153 days
+        # -> 365 - 153 = 212
+        self.assertEqual(segments.n_periods, 212)
+
+        # Do that again, but with a leap year
+        prd = dateperiods.DatePeriod([2020], [2020])
+        segments = prd.get_segments("day")
+        months_to_exclude = [5, 6, 7, 8, 9]
+        segments.filter_month(months_to_exclude)
+        # 2011 is not a leap year, month May through Sep are 153 days
+        # -> 366 - 153 = 213
+        self.assertEqual(segments.n_periods, 213)
+
+    def test_month_filter_isoweekly_duration(self):
+        prd = dateperiods.DatePeriod([2010], [2010])
+        segments = prd.get_segments("isoweek")
+        months_to_exclude = [5, 6, 7, 8, 9]
+        segments.filter_month(months_to_exclude)
+        self.assertEqual(segments.n_periods, 30)
+
+    def test_month_filter_monthly_duration(self):
+        prd = dateperiods.DatePeriod([2010], [2010])
+        segments = prd.get_segments("month")
+        months_to_exclude = [5, 6, 7, 8, 9]
+        segments.filter_month(months_to_exclude)
+        self.assertEqual(segments.n_periods, 7)
+
+    def test_month_filter_yearly_duration(self):
+        prd = dateperiods.DatePeriod([2010], [2011])
+        segments = prd.get_segments("year")
+        months_to_exclude = [5, 6, 7, 8, 9]
+        # filtering should not do anything
+        segments.filter_month(months_to_exclude)
+        self.assertEqual(segments.n_periods, 2)
+
+    def test_month_filter_empty_result(self):
+        prd = dateperiods.DatePeriod([2010, 6], [2010, 8])
+        segments = prd.get_segments("month")
+        months_to_exclude = [5, 6, 7, 8, 9]
+        # filtering should not do anything
+        segments.filter_month(months_to_exclude)
+        self.assertEqual(segments.n_periods, 0)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,5 +1,4 @@
-
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
 from isodate.duration import Duration
@@ -49,9 +48,9 @@ class DatePeriod(object):
         :param dt_fmt: 
         :return: 
         """
-        return self.tcs.dt.strftime(dt_fmt)+"_"+self.tce.dt.strftime(dt_fmt)
+        return self.tcs.dt.strftime(dt_fmt) + "_" + self.tce.dt.strftime(dt_fmt)
 
-    def get_segments(self, duration_type: str, crop_to_period=False, **filter_kwargs):
+    def get_segments(self, duration_type: str, crop_to_period=False):
         """
         Return an iterator that divides the period into the segments with the specified duration.
         The iterations will be of type DatePeriod. If a duration is longer than the duration of the
@@ -83,7 +82,7 @@ class DatePeriod(object):
         # month. Cropping the Iterator will result in the first segment to run from the
         # the middle to the end of the first month and the seconds item from the beginning
         # to the middle of the second month.
-        # This functionaly is handled in PeriodIterator.
+        # This functionality is handled in PeriodIterator.
         if crop_to_period:
             prditer.crop_to_period(self)
 
@@ -125,7 +124,7 @@ class DatePeriod(object):
             raise ValueError(msg)
 
         # Simpler to compute if there is no overlap
-        has_overlap = not(self.tcs.date > period.tce.date or self.tce.date < period.tcs.date)
+        has_overlap = not (self.tcs.date > period.tce.date or self.tce.date < period.tcs.date)
         return has_overlap
 
     def intersect(self, period):
@@ -169,7 +168,7 @@ class DatePeriod(object):
 
     @property
     def label(self):
-        return str(self.tcs.dt)+" till "+str(self.tce.dt)
+        return str(self.tcs.dt) + " till " + str(self.tce.dt)
 
     def __repr__(self):
         output = "DatePeriod:\n"
@@ -254,9 +253,35 @@ class PeriodIterator(object):
         # based on the choice of segment_duration
         funcs = dict(day=self.get_day_segments,
                      isoweek=self.get_isoweek_segments,
-                     month=self.get_month_segments)
+                     month=self.get_month_segments,
+                     year=self.get_year_segments)
         base_tcs, base_tce = self.base_period.tcs.dt, self.base_period.tce.dt
         self._segment_list.extend(funcs[self.segment_duration](base_tcs, base_tce))
+
+    def filter_month(self, month_nums):
+        """
+        Removes segments for if the the month of both start and end of the time coverage is in a list
+        of month that should be removed from the iterator.
+        The origin of this filter function comes from the omission of summer month.
+        #TODO: Thinks of a more general filter rule
+        :param month_nums: integer (list/tuple or scalar) of month number (1-12)
+        :return:
+        """
+
+        # Make sure the input is always a list
+        month_nums = month_nums if isinstance(month_nums, (list, tuple)) else list([month_nums])
+
+        # Input validation
+        valid_flag = [m in list(range(1, 13)) for m in month_nums]
+        if False in valid_flag:
+            raise ValueError("Invalid month encountered in {}".format(month_nums))
+
+        # Lambda function for the filtering
+        def filter_func(s): return s.tcs.month not in month_nums and s.tce.month not in month_nums
+
+        # Create a new list of segments and overwrite the original one
+        filter_segments = [s for s in self if filter_func(s)]
+        self._segment_list = filter_segments
 
     @staticmethod
     def days_list(start_dt, end_dt):
@@ -325,10 +350,9 @@ class PeriodIterator(object):
 
         segments = []
         for i in np.arange(n_weeks):
-
             # Compute start and stop date for each week
-            d1 = start_dt + relativedelta(days=int(i * 7)-weekday_offset)
-            d2 = start_dt + relativedelta(days=int((i + 1) * 7 - 1)-weekday_offset)
+            d1 = start_dt + relativedelta(days=int(i * 7) - weekday_offset)
+            d2 = start_dt + relativedelta(days=int((i + 1) * 7 - 1) - weekday_offset)
 
             # store start and stop day for each week
             segments.append(DatePeriod([d1.year, d1.month, d1.day], [d2.year, d2.month, d2.day]))
@@ -610,7 +634,7 @@ class _DateDuration(object):
         The number of seconds
         :return: int
         """
-        return (self.tce.dt-self.tcs.dt).total_seconds()
+        return (self.tce.dt - self.tcs.dt).total_seconds()
 
     @property
     def total_days(self):
@@ -689,7 +713,7 @@ class _DateDuration(object):
             tdelta = relativedelta(dt1=self.tce.dt, dt2=self.tcs.dt)
             return Duration(years=tdelta.years, months=tdelta.months,
                             days=tdelta.days, hours=tdelta.hours,
-                            minutes=tdelta.minutes, seconds=tdelta.seconds+1)
+                            minutes=tdelta.minutes, seconds=tdelta.seconds + 1)
 
     @property
     def isoformat(self):
