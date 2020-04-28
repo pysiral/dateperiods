@@ -123,6 +123,37 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
     #     prds = prd.get_period_segments("monthly", exclude_month=[5, 6, 7, 8, 9])
     #     self.assertEqual(len(prds), 8)
     #     self.assertEqual(prds[0].period_type, "monthly")
+class OverlapFunctionalityTestSuite(unittest.TestCase):
+    """A standard list of test cases """
+
+    def test_input_args(self):
+        prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
+        self.assertRaises(TypeError, prd.has_overlap)
+        self.assertRaises(ValueError, prd.has_overlap, 1)
+        self.assertRaises(ValueError, prd.has_overlap, None)
+        self.assertRaises(ValueError, prd.has_overlap, [])
+
+    def test_full_overlap(self):
+        prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 4], [2018, 4])))
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 3], [2018, 4])))
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 4], [2018, 5])))
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 3], [2018, 5])))
+
+    def test_partial_overlap(self):
+        prd = dateperiods.DatePeriod([2018, 4, 15], [2018, 5, 15])
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 4], [2018, 4])))
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 5], [2018, 5])))
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 4], [2018, 4, 15])))
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 5, 15], [2018, 5])))
+        self.assertTrue(prd.has_overlap(dateperiods.DatePeriod([2018, 4, 16], [2018, 4])))
+
+    def test_no_overlap(self):
+        prd = dateperiods.DatePeriod([2018, 4, 15], [2018, 5, 15])
+        self.assertFalse(prd.has_overlap(dateperiods.DatePeriod([2018, 4], [2018, 4, 14])))
+        self.assertFalse(prd.has_overlap(dateperiods.DatePeriod([2018, 5, 16], [2018, 5])))
+
+
 
 
 if __name__ == '__main__':

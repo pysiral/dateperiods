@@ -122,6 +122,22 @@ class DatePeriod(object):
                        time_coverage_resolution=self.duration.isoformat)
         return ncattrs
 
+    def has_overlap(self, period):
+        """
+        Returns bool flag if this period has (partial) overlap with another period
+        :param period:
+        :return:
+        """
+
+        # Input validation
+        if not isinstance(period, DatePeriod):
+            msg = "period argument must be of type dateperiods.DatePeriod (was {})"
+            msg = msg.format(type(period))
+            raise ValueError(msg)
+
+        # Simpler to compute if there is no overlap
+        has_overlap = not(self.tcs.date > period.tce.date or self.tce.date < period.tcs.date)
+        return has_overlap
         # # monthly periods: return a list of time ranges that cover the full
         # # month from the first to the last month
         # if target_period == "monthly":
