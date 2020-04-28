@@ -329,7 +329,6 @@ class PeriodIterator(object):
         self._segment_list = []
         self._get_segment_list()
 
-    def _get_segment_list(self):
     def __iter__(self):
         """
         Mandatory iteration init method
@@ -350,75 +349,95 @@ class PeriodIterator(object):
         self.index += 1
         return self._segment_list[index]
 
+    def _get_segment_list(self):
+        """
+        Compute the list of segments based on the input parameters. The work is delegated to the respective
+        methods for each duraction type. All of these methods have to return a list of DatePeriod objects
+        :return:
+        """
         # Dictionary of methods that will be called to get a list of tcs/tce's for each segment
         # based on the choice of segment_duration
-        funcs = dict(day=self.get_days, isoweek=self.get_isoweeks, month=self.get_months)
+        funcs = dict(day=self.get_day_segments,
+                     isoweek=self.get_isoweek_segments,
+                     month=self.get_month_segments)
         base_tcs, base_tce = self.base_period.tcs.dt, self.base_period.tce.dt
-        for period_def in funcs[self.segment_duration](base_tcs, base_tce):
-            self._segment_list.append(DatePeriod(period_def, period_def))
+        self._segment_list = funcs[self.segment_duration](base_tcs, base_tce)
 
     @staticmethod
-    def days_list(year, month):
-        """ returns an iterator over all days in given month """
-        all_days = calendar.monthrange(year, month)
-        start = datetime(year, month, 1)
-        end = datetime(year, month, all_days[-1])
-        return [(d.year, d.month, d.day) for d in rrule(DAILY, dtstart=start, until=end)]
+    def days_list(start_dt, end_dt):
+        """
+        Return a list of all days (tuples of year, month, day) of all days between to
+        datetimes
+        :param start_dt: datetime.datetime
+        :param end_dt: datetime.datetime
+        :return: list
+        """
+        days_list = [(d.year, d.month, d.day) for d in rrule(DAILY, dtstart=start_dt, until=end_dt)]
+        return days_list
 
     @staticmethod
-    def months_list(start_year, start_month, end_year, end_month):
-        """ returns an iterator over months """
-        start = datetime(start_year, start_month, 1)
-        end = datetime(end_year, end_month, 1)
+    def months_list(start_dt, end_dt):
+        """
+        Return a list of all month (tuples of year, month) of all months between to datetimes
+        :param start_dt: datetime.datetime
+        :param end_dt: datetime.datetime
+        :return: list
+        """
+        start = datetime(start_dt.year, start_dt.month, 1)
+        end = datetime(end_dt.year, end_dt.month, 1)
         return [(d.year, d.month) for d in rrule(MONTHLY, dtstart=start, until=end)]
 
     @classmethod
-    def get_days(cls, start_dt, end_dt):
-        """ Returns a list of all days (exclude_month applies) """
-        days = []
-        months = cls.get_months(start_dt, end_dt)
-        n_month = len(months)
-        start_day, stop_day = start_dt.day, end_dt.day
-        for i, month in enumerate(months):
-            # List of all days in given month
-            monthly_days = cls.days_list(*month)
-            # Clip potential omitted days in the start request
-            if i == 0:
-                monthly_days = [d for d in monthly_days if d[2] >= start_day]
-            # Clip potential omitted days in the stop request
-            if i == n_month - 1:
-                monthly_days = [d for d in monthly_days if d[2] <= stop_day]
-            days.extend(monthly_days)
-        return days
+    def get_day_segments(cls, start_dt, end_dt):
+        """
+        Return a list of daily DatePeriods between to datetimes
+        :param start_dt: datetime.datetime
+        :param end_dt: datetime.datetime
+        :return: list
+        """
+        segments = [DatePeriod(d, d) for d in cls.days_list(start_dt, end_dt)]
+        return segments
 
     @classmethod
-    def get_isoweeks(cls, start_dt, end_dt):
-        """ Returns a list of all weeks (start_dt + 7 days) in the period.
-        exclude_month is applied, but partial overlap of weeks and exclude_month
-        is allowed """
+    def get_isoweek_segments(cls, start_dt, end_dt):
+        """
+        Return a list of isoweek DatePeriods between to datetimes
+        :param start_dt: datetime.datetime
+        :param end_dt: datetime.datetime
+        :return: list
+        """
 
-        weeks = []
-        # Get the number of weeks (without exclude month)
-        list_of_days = cls.get_days(start_dt, end_dt)
+        # Get the number of weeks
+        list_of_days = cls.days_list(start_dt, end_dt)
         n_weeks = np.ceil(float(len(list_of_days)) / 7.).astype(int)
 
+        # Isoweek segments are always Monday and start_dt might not be one
+        # -> compute the offset
+        start_day = list_of_days[0]
+        weekday_offset = datetime(*start_day).isoweekday() - 1
+
+        segments = []
         for i in np.arange(n_weeks):
 
             # Compute start and stop date for each week
-            d1 = start_dt + relativedelta(days=int(i * 7))
-            d2 = start_dt + relativedelta(days=int((i + 1) * 7 - 1))
+            d1 = start_dt + relativedelta(days=int(i * 7)-weekday_offset)
+            d2 = start_dt + relativedelta(days=int((i + 1) * 7 - 1)-weekday_offset)
 
             # store start and stop day for each week
-            weeks.append([[d1.year, d1.month, d1.day], [d2.year, d2.month, d2.day]])
+            segments.append(DatePeriod([d1.year, d1.month, d1.day], [d2.year, d2.month, d2.day]))
 
-        return weeks
+        return segments
 
     @classmethod
-    def get_months(cls, start_dt, end_dt):
-        """ Returns a list of all month (exclude_month applies) """
-        # Get an iterator for integer year and month
-        months = cls.months_list(start_dt.year, start_dt.month, end_dt.year, end_dt.month)
-        return months
+    def get_month_segments(cls, start_dt, end_dt):
+        """
+        Return a list of monthly DatePeriods between to datetimes
+        :param start_dt: datetime.datetime
+        :param end_dt: datetime.datetime
+        :return: list
+        """
+        segments = [DatePeriod(m, m) for m in cls.months_list(start_dt, end_dt)]
+        return segments
 
     @property
     def valid_segment_duration(self):
