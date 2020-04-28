@@ -299,7 +299,7 @@ class DatePeriod(object):
     def __repr__(self):
         output = "DatePeriod:\n"
         for field in ["tcs", "tce"]:
-            output += "%12s: %s" % (field, getattr(self, field))
+            output += "%12s: %s" % (field, getattr(self, field).dt)
             output += "\n"
         return output
 
