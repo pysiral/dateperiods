@@ -330,10 +330,25 @@ class PeriodIterator(object):
         self._get_segment_list()
 
     def _get_segment_list(self):
+    def __iter__(self):
         """
-        Compute the list of segments from the input
+        Mandatory iteration init method
         :return:
         """
+
+        self.index = 0
+        return self
+
+    def __next__(self):
+        """
+        Mandatory iteration method
+        :return:
+        """
+        index = int(self.index)
+        if index > self.n_periods - 1:
+            raise StopIteration
+        self.index += 1
+        return self._segment_list[index]
 
         # Dictionary of methods that will be called to get a list of tcs/tce's for each segment
         # based on the choice of segment_duration
