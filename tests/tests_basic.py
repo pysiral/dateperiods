@@ -154,6 +154,42 @@ class OverlapFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(prd.has_overlap(dateperiods.DatePeriod([2018, 5, 16], [2018, 5])))
 
 
+class IntersectionFunctionalityTestSuite(unittest.TestCase):
+    """A standard list of test cases """
+
+    def test_input_args(self):
+        prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
+        self.assertRaises(TypeError, prd.intersect)
+        self.assertRaises(ValueError, prd.intersect, 1)
+        self.assertRaises(ValueError, prd.intersect, None)
+        self.assertRaises(ValueError, prd.intersect, [])
+
+    def test_full_intersection(self):
+        prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
+        prd_intersect = dateperiods.DatePeriod([2018, 2], [2018, 5])
+        result = prd.intersect(prd_intersect)
+        self.assertEqual(result.tcs.date, prd.tcs.date)
+        self.assertEqual(result.tce.date, prd.tce.date)
+
+    def test_partial_intersection(self):
+        prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
+        # Test 1: period start earlier
+        prd_intersect = dateperiods.DatePeriod([2018, 4, 15], [2018, 5])
+        result = prd.intersect(prd_intersect)
+        self.assertEqual(result.tcs.date, prd_intersect.tcs.date)
+        self.assertEqual(result.tce.date, prd.tce.date)
+        # Test 2: period ends later
+        prd_intersect = dateperiods.DatePeriod([2018, 3], [2018, 4, 15])
+        result = prd.intersect(prd_intersect)
+        self.assertEqual(result.tcs.date, prd.tcs.date)
+        self.assertEqual(result.tce.date, prd_intersect.tce.date)
+
+    def test_empty_intersection(self):
+        prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
+        prd_intersect = dateperiods.DatePeriod([2018, 3], [2018, 3])
+        self.assertIsNone(prd.intersect(prd_intersect))
+        prd_intersect = dateperiods.DatePeriod([2018, 5], [2018, 5])
+        self.assertIsNone(prd.intersect(prd_intersect))
 
 
 if __name__ == '__main__':

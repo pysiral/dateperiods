@@ -138,6 +138,32 @@ class DatePeriod(object):
         # Simpler to compute if there is no overlap
         has_overlap = not(self.tcs.date > period.tce.date or self.tce.date < period.tcs.date)
         return has_overlap
+
+    def intersect(self, period):
+        """
+        Computes the intersection and with another DatePeriod instance and returns
+        a corresponding DatePeriod instance.
+        :param period: dateperiods.DatePeriod
+        :return: dateperiods.DatePeriod or None (if empty intersection)
+        """
+
+        # Input validation
+        if not isinstance(period, DatePeriod):
+            msg = "period argument must be of type dateperiods.DatePeriod (was {})"
+            msg = msg.format(type(period))
+            raise ValueError(msg)
+
+        # Return None if intersection is empty
+        if not self.has_overlap(period):
+            return None
+
+        # Compute the start and end date of the intersection
+        intersect_start_date = max(self.tcs.date, period.tcs.date)
+        intersect_end_date = min(self.tce.date, period.tce.date)
+
+        # Create and return intersection Period
+        return DatePeriod(intersect_start_date, intersect_end_date)
+
         # # monthly periods: return a list of time ranges that cover the full
         # # month from the first to the last month
         # if target_period == "monthly":
