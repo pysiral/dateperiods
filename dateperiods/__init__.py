@@ -81,7 +81,7 @@ class DatePeriod(object):
         """
         return self.tcs.dt.strftime(dt_fmt)+"_"+self.tce.dt.strftime(dt_fmt)
 
-    def get_segments(self, duration_type: str, **filter_kwargs):
+    def get_segments(self, duration_type: str, crop_to_period=False, **filter_kwargs):
         """
         Return an iterator that divides the period into the segments with the specified duration.
         The iterations will be of type DatePeriod. If a duration is longer than the duration of the
@@ -92,12 +92,31 @@ class DatePeriod(object):
         PeriodIterator class
 
         :param duration_type:
+        :param crop_to_period:
         :param filter_kwargs:
         :return: 
         """
 
+        # Input validation
+        if not isinstance(crop_to_period, bool):
+            msg = "Keyword `limit_to_period` must be `True`or `False` (bool), was {}".format(crop_to_period)
+            raise ValueError(msg)
+
         # NOTE: Sanity Check of input args will be done in the PeriodIterator instance
         prditer = PeriodIterator(self, duration_type)
+
+        # Crop to the period of this instance. This means practically to limit the
+        # duration of the iterator segments to the start and end date of this
+        # DatePeriod instance.
+        # E.g. if the duration of this period is from the middle of one month to the
+        # middle of the next, PeriodIterator will have two segments that cover both full
+        # month. Cropping the Iterator will result in the first segment to run from the
+        # the middle to the end of the first month and the seconds item from the beginning
+        # to the middle of the second month.
+        # This functionaly is handled in PeriodIterator.
+        if crop_to_period:
+            prditer.crop_to_period(self)
+
         return prditer
 
     def get_netcdf_attributes(self, zulu=True):
@@ -317,27 +336,6 @@ class DatePeriod(object):
     def label(self):
         return str(self.tcs.dt)+" till "+str(self.tce.dt)
 
-    # @property
-    # def period_type(self):
-    #     return self._period_type
-
-    # @property
-    # def duration(self):
-    #     """ Return a duration object """
-    #     if self.period_type == "monthly":
-    #         return Duration(months=1)
-    #     elif self.period_type == "daily":
-    #         return Duration(days=1)
-    #     else:
-    #         tdelta = relativedelta(dt1=self.tce.dt, dt2=self.tcs.dt)
-    #         return Duration(years=tdelta.years, months=tdelta.months,
-    #                         days=tdelta.days, hours=tdelta.hours,
-    #                         minutes=tdelta.minutes, seconds=tdelta.seconds)
-    #
-    # @property
-    # def duration_isoformat(self):
-    #     return duration_isoformat(self.duration)
-
     def __repr__(self):
         output = "DatePeriod:\n"
         for field in ["tcs", "tce"]:
@@ -382,7 +380,7 @@ class PeriodIterator(object):
 
     def __next__(self):
         """
-        Mandatory iteration method
+        Mandatory iteration handler method
         :return:
         """
         index = int(self.index)
@@ -390,6 +388,26 @@ class PeriodIterator(object):
             raise StopIteration
         self.index += 1
         return self._segment_list[index]
+
+    def crop_to_period(self, period):
+        """
+        Will cause all segments to be cropped by the dates of the period according to the following
+        rules:
+            - segments with partial overlap will be cropped
+            - segments with no overlap will be removed
+            - segments with full will remain unchanged.
+        :param period: dateperiods.DatePeriod
+        :return: None
+        """
+
+        # Make a new list of segments that will overwrite existing ine
+        cropped_segments = []
+        for segment in self:
+            cropped_segment = segment.intersect(period)
+            if cropped_segment is not None:
+                cropped_segments.append(cropped_segment)
+        # Overwrite the list of segments
+        self._segment_list = cropped_segments
 
     def _get_segment_list(self):
         """
@@ -403,7 +421,7 @@ class PeriodIterator(object):
                      isoweek=self.get_isoweek_segments,
                      month=self.get_month_segments)
         base_tcs, base_tce = self.base_period.tcs.dt, self.base_period.tce.dt
-        self._segment_list = funcs[self.segment_duration](base_tcs, base_tce)
+        self._segment_list.extend(funcs[self.segment_duration](base_tcs, base_tce))
 
     @staticmethod
     def days_list(start_dt, end_dt):
@@ -488,6 +506,10 @@ class PeriodIterator(object):
     @property
     def n_periods(self):
         return len(self._segment_list)
+
+    @property
+    def list(self):
+        return list(self._segment_list)
 
 
 class _DateDefinition(object):
