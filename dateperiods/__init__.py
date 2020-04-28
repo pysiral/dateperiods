@@ -6,8 +6,8 @@
 
 
 import calendar
-from typing import List
 import numpy as np
+from typing import List
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
