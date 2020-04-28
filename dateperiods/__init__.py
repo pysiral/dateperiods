@@ -1,7 +1,7 @@
 
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
-from dateutil.rrule import rrule, MONTHLY, DAILY
+from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
 from isodate.duration import Duration
 from isodate import duration_isoformat
 import calendar
@@ -282,6 +282,18 @@ class PeriodIterator(object):
         end = datetime(end_dt.year, end_dt.month, 1)
         return [(d.year, d.month) for d in rrule(MONTHLY, dtstart=start, until=end)]
 
+    @staticmethod
+    def years_list(start_dt, end_dt):
+        """
+        Return a list of all month (tuples of year, month) of all months between to datetimes
+        :param start_dt: datetime.datetime
+        :param end_dt: datetime.datetime
+        :return: list
+        """
+        start = datetime(start_dt.year, 1, 1)
+        end = datetime(end_dt.year, 1, 1)
+        return [d.year for d in rrule(YEARLY, dtstart=start, until=end)]
+
     @classmethod
     def get_day_segments(cls, start_dt, end_dt):
         """
@@ -334,9 +346,20 @@ class PeriodIterator(object):
         segments = [DatePeriod(m, m) for m in cls.months_list(start_dt, end_dt)]
         return segments
 
+    @classmethod
+    def get_year_segments(cls, start_dt, end_dt):
+        """
+        Return a list of monthly DatePeriods between to datetimes
+        :param start_dt: datetime.datetime
+        :param end_dt: datetime.datetime
+        :return: list
+        """
+        segments = [DatePeriod([y], [y]) for y in cls.years_list(start_dt, end_dt)]
+        return segments
+
     @property
     def valid_segment_duration(self):
-        return ["month", "isoweek", "day"]
+        return ["year", "month", "isoweek", "day"]
 
     @property
     def n_periods(self):

@@ -2,8 +2,7 @@
 
 from context import dateperiods
 
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
+from datetime import date
 
 import unittest
 
@@ -47,6 +46,16 @@ class IteratorBasicFunctionalityTestSuite(unittest.TestCase):
             self.assertEqual(segment.tcs.dt.day, 1)
             self.assertTrue(segment.tce.is_last_day_of_month)
 
+    def test_segment_lengths_years(self):
+        prd = dateperiods.DatePeriod([2018, 3], [2019, 4])
+        segments = prd.get_segments("year")
+        self.assertEqual(segments.n_periods, 2)
+        for segment in segments:
+            self.assertEqual(segment.tcs.day, 1)
+            self.assertEqual(segment.tcs.month, 1)
+            self.assertEqual(segment.tce.day, 31)
+            self.assertEqual(segment.tce.month, 12)
+
 
 class IteratorCroppingFunctionalityTestSuite(unittest.TestCase):
     """ Testing the segmentation of Periods """
@@ -70,12 +79,25 @@ class IteratorCroppingFunctionalityTestSuite(unittest.TestCase):
         self.assertEqual(segments.n_periods, 2)
         # Test first segment (should be Apr 15 -> Apr. 30)
         first_segment = segments.list[0]
-        self.assertEqual(first_segment.tcs.day, 15)
-        self.assertTrue(first_segment.tce.is_last_day_of_month)
+        self.assertEqual(first_segment.tcs.date, date(2018, 4, 15))
+        self.assertEqual(first_segment.tce.date, date(2018, 4, 30))
         # Test second segment (should be May 1 -> May 15)
         second_segment = segments.list[1]
-        self.assertEqual(second_segment.tcs.day, 1)
-        self.assertEqual(second_segment.tce.day, 15)
+        self.assertEqual(second_segment.tcs.date, date(2018, 5, 1))
+        self.assertEqual(second_segment.tce.date, date(2018, 5, 15))
+
+    def test_cropped_segment_type_yearly(self):
+        prd = dateperiods.DatePeriod([2018, 4, 15], [2019, 5, 15])
+        segments = prd.get_segments("year", crop_to_period=True)
+        self.assertEqual(segments.n_periods, 2)
+        # Test first segment (should be Apr 15 -> Apr. 30)
+        first_segment = segments.list[0]
+        self.assertEqual(first_segment.tcs.date, date(2018, 4, 15))
+        self.assertEqual(first_segment.tce.date, date(2018, 12, 31))
+        # Test second segment (should be May 1 -> May 15)
+        second_segment = segments.list[1]
+        self.assertEqual(second_segment.tcs.date, date(2019, 1, 1))
+        self.assertEqual(second_segment.tce.date, date(2019, 5, 15))
 
 
 if __name__ == '__main__':
