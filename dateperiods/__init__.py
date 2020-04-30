@@ -186,6 +186,10 @@ class DatePeriod(object):
     def label(self):
         return str(self.tcs.dt) + " till " + str(self.tce.dt)
 
+    @property
+    def date_label(self):
+        return str(self.tcs.date) + " till " + str(self.tce.date)
+
     def __repr__(self):
         output = "DatePeriod:\n"
         for field in ["tcs", "tce"]:
