@@ -189,7 +189,7 @@ class DatePeriod(object):
     @property
     def center(self):
         tdelta_seconds = (self.tce.dt - self.tcs.dt).total_seconds()
-        return self.tcs.dt + timedelta(seconds=int(0.5*tdelta_seconds))
+        return self.tcs.dt + timedelta(seconds=int(round(0.5*tdelta_seconds, 0)))
 
     @property
     def date_label(self):
