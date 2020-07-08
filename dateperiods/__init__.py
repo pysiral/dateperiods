@@ -8,7 +8,7 @@
 import calendar
 import numpy as np
 from typing import List
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
 from isodate.duration import Duration
@@ -185,6 +185,11 @@ class DatePeriod(object):
     @property
     def label(self):
         return str(self.tcs.dt) + " till " + str(self.tce.dt)
+
+    @property
+    def center(self):
+        tdelta_seconds = (self.tce.dt - self.tcs.dt).total_seconds()
+        return self.tcs.dt + timedelta(seconds=int(0.5*tdelta_seconds))
 
     @property
     def date_label(self):
