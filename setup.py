@@ -10,7 +10,7 @@ with open('LICENSE') as f:
 
 setup(
     name='dateperiods',
-    version='1.0',
+    version='1.0.1',
     description='Managing date-based periods in python',
     long_description=readme,
     author='Stefan Hendricks',
