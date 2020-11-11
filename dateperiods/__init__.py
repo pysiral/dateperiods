@@ -16,7 +16,7 @@ from isodate import duration_isoformat
 
 
 # Package Metadata
-__version__ = "1.0"
+__version__ = "1.0.1"
 __author__ = "Stefan Hendricks"
 __author_email__ = "stefan.hendricks@awi.de"
 
