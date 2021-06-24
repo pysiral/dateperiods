@@ -4,7 +4,7 @@
 
 """
 
-
+import cftime
 import calendar
 import numpy as np
 from typing import List
@@ -29,7 +29,7 @@ class DatePeriod(object):
     Container for managing periods of dates and their segmentation into sub-periods
     """
 
-    def __init__(self, tcs_def, tce_def):
+    def __init__(self, tcs_def, tce_def, unit=None, calendar=None):
         """
         Establish a period defined by the start (tcs) and end (tce) of the time coverage.
         The start and end time can be specified with the following tpyes:
@@ -43,11 +43,15 @@ class DatePeriod(object):
 
         :param tcs_def: The definition for the start of the time coverage.
         :param tce_def: The definition for the end of the time coverage.
+        :param unit:
         """
 
         # Process the input date definitions
-        self._tcs = _DateDefinition(tcs_def, "tcs")
-        self._tce = _DateDefinition(tce_def, "tce")
+        self._unit = unit if unit is not None else "seconds since 1970-01-01"
+        self._calendar = calendar if calendar is not None else "standard"
+
+        self._tcs = _DateDefinition(tcs_def, "tcs", unit=self._unit, calendar=self._calendar)
+        self._tce = _DateDefinition(tce_def, "tce", unit=self._unit, calendar=self._calendar)
 
         # Make sure the period is valid, e.g. that start is before ends
         if self._tce.dt < self._tcs.dt:
@@ -192,8 +196,20 @@ class DatePeriod(object):
         return self.tcs.dt + timedelta(seconds=int(round(0.5*tdelta_seconds, 0)))
 
     @property
+    def center_datenum(self):
+        return cftime.date2num(self.center, self.unit, self.calendar)
+
+    @property
     def date_label(self):
         return str(self.tcs.date) + " till " + str(self.tce.date)
+
+    @property
+    def unit(self):
+        return str(self._unit)
+
+    @property
+    def calendar(self):
+        return str(self._calendar)
 
     def __repr__(self):
         output = "DatePeriod:\n"
@@ -425,7 +441,7 @@ class _DateDefinition(object):
     to either define a date or generate from year, year+month, year+month+day lists
     """
 
-    def __init__(self, date_def, tcs_or_tce: str) -> None:
+    def __init__(self, date_def, tcs_or_tce, unit=None, calendar=None) -> None:
         """
         Creates date container from various input formats. Valid date definitions are:
             1. datetime.datetime
@@ -438,6 +454,8 @@ class _DateDefinition(object):
               day of the year
         :param date_def:
         :param tcs_or_tce:
+        :param unit:
+        :param calendar:
         """
 
         # Store args
@@ -447,6 +465,9 @@ class _DateDefinition(object):
         else:
             msg = "Invalid tce_or_tcs: {} -> must be 'tcs' or 'tce'".format(str(tcs_or_tce))
             raise ValueError(msg)
+
+        self._unit = unit if unit is not None else "seconds since 1970-01-01"
+        self._calendar = calendar if calendar is not None else "standard"
 
         # Init Properties
         self._year = None
@@ -572,6 +593,14 @@ class _DateDefinition(object):
         return dt
 
     @property
+    def datenum(self):
+        """
+        The date in numerical expression. Values depends on calendar and unit
+        :return: float
+        """
+        return cftime.date2num(self.dt, self.unit, self.calendar)
+
+    @property
     def type(self):
         return str(self._tcs_or_tce)
 
@@ -623,6 +652,14 @@ class _DateDefinition(object):
         :return: str list
         """
         return list(["tcs", "tce"])
+
+    @property
+    def unit(self):
+        return str(self._unit)
+
+    @property
+    def calendar(self):
+        return str(self._calendar)
 
 
 class _DateDuration(object):
