@@ -486,7 +486,8 @@ class _DateDefinition(object):
 
         # date definition is either a datetime.datetime or datetime.date,
         # -> the year, month, day properties can be simply transferred to this class
-        if isinstance(self._date_def, (datetime, date)):
+        datetime_like = (datetime, date, cftime.DatetimeGregorian, cftime.datetime, cftime.real_datetime)
+        if isinstance(self._date_def, datetime_like):
             year, month, day = self._date_def.year, self._date_def.month, self._date_def.day
 
         # date definition is a list or tuple
