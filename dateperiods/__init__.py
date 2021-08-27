@@ -711,7 +711,7 @@ class _DateDuration(object):
         Number of days between start and end (1 if both are the same day)
         :return: int
         """
-        return relativedelta(self.tce.dt, self.tcs.dt).days + 1
+        return (self.tce.dt - self.tcs.dt).days + 1
 
     @property
     def is_day(self):
