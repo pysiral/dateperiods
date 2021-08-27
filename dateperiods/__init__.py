@@ -29,7 +29,7 @@ class DatePeriod(object):
     Container for managing periods of dates and their segmentation into sub-periods
     """
 
-    def __init__(self, tcs_def, tce_def, unit=None, calendar=None):
+    def __init__(self, tcs_def, tce_def=None, unit=None, calendar=None):
         """
         Establish a period defined by the start (tcs) and end (tce) of the time coverage.
         The start and end time can be specified with the following tpyes:
@@ -44,11 +44,17 @@ class DatePeriod(object):
         :param tcs_def: The definition for the start of the time coverage.
         :param tce_def: The definition for the end of the time coverage.
         :param unit:
+        :param calendar:
         """
 
         # Process the input date definitions
         self._unit = unit if unit is not None else "seconds since 1970-01-01"
         self._calendar = calendar if calendar is not None else "standard"
+
+        # if time coverage end is omitted, use time coverage start as the definition
+        # of the period.
+        if tce_def is None:
+            tce_def = tcs_def
 
         self._tcs = _DateDefinition(tcs_def, "tcs", unit=self._unit, calendar=self._calendar)
         self._tce = _DateDefinition(tce_def, "tce", unit=self._unit, calendar=self._calendar)
