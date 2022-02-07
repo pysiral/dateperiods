@@ -2,22 +2,22 @@
 
 from setuptools import setup, find_packages
 
-with open('README.rst') as f:
+with open('README.md') as f:
     readme = f.read()
 
 with open('LICENSE') as f:
-    license = f.read()
+    license_txt = f.read()
 
 setup(
     name='dateperiods',
-    version='1.0.1',
-    description='Managing date-based periods in python',
+    version='1.1.0',
+    description='Periods between dates in python',
     long_description=readme,
     author='Stefan Hendricks',
     author_email='stefan.hendricks@awi.de',
     url='https://github.com/shendric/dateperiods',
-    license=license,
-    packages=find_packages(exclude=('tests')),
+    license=license_txt,
+    packages=find_packages(exclude=('tests',)),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',

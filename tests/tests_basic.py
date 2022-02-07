@@ -12,7 +12,7 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
     """A standard list of test cases """
 
     def test_date_int_list_len(self):
-        self.assertRaises(TypeError, dateperiods.DatePeriod, [])
+        self.assertRaises(ValueError, dateperiods.DatePeriod, [])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [], [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, None, [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [2018, 4, 1, 1], [2018, 4, 1])
