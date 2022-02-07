@@ -1,0 +1,9 @@
+cff-version: 1.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Hendricks,
+    given-names: Stefan
+    orcid: https://orcid.org/0000-0002-1412-3146
+title: "dateperiods: Periods between dates in python"
+version: v1.1.0
+date-released: 2022-02-07
