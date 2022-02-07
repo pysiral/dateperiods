@@ -1,9 +1,101 @@
+# dateperiods: Periods between dates in python
 
 ![Python package](https://github.com/shendric/dateperiods/workflows/Python%20package/badge.svg?branch=master)
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
 
-# dateperiods: Periods between dates in python
+[![Python Version](https://img.shields.io/badge/python-3.6,_3.7,_3.8,_3.9-blue)](https://www.python.org/downloads/)
+
+## About dateperiods
+
+The package `dateperiods` is meant to make iterating over certain periods between two dates easy. The main `DatePeriod` class takes two dates into account, the start of the time coverage with a daily granularity, but microsecond resolution:
+
+```python
+>>> from dateperiods import DatePeriod
+>>> DatePeriod([2020, 10, 1], [2021, 4, 30])
+DatePeriod:
+         tcs: 2020-10-01 00:00:00
+         tce: 2021-04-30 23:59:59.999999
+```
+
+but auto-completion of input arguments is also possible. E.g., the statement above is equivalent to: 
+
+```python
+>>> dp = DatePeriod([2020, 10], [2021, 4])
+DatePeriod:
+         tcs: 2020-10-01 00:00:00
+         tce: 2021-04-30 23:59:59.999999
+```
+
+The main properties of `DatePeriod` objects are the start date (tcs = time coverage start):
+
+```
+>>> dp.tcs
+DateDefinition:
+               isoformat: 2020-10-01T00:00:00
+                    type: tcs
+               is_monday: False
+               is_sunday: False
+   is_first_day_of_month: True
+    is_last_day_of_month: False
+```
+
+the end date (tce = time coverage end):
+
+```
+>>> dp.tce
+DateDefinition:
+               isoformat: 2021-04-30T23:59:59.999999
+                    type: tce
+               is_monday: False
+               is_sunday: False
+   is_first_day_of_month: False
+    is_last_day_of_month: True
+```
+
+and the duration between two dates:
+
+```
+>>> dp.tce
+DateDuration:
+       isoformat: P7M
+            type: custom
+      total_days: 212
+          is_day: False
+      is_isoweek: False
+        is_month: False
+         is_year: False
+```
+
+The period can be segmented into defined a duration type (day, isoweek, month, year):
+
+```python
+>>> dp.get_segments("month)
+PeriodIterator:
+                     tcs: 2020-10-01 00:00:00
+                     tce: 2021-04-30 23:59:59.999999
+        segment_duration: month
+               n_periods: 7
+```
+
+The return value of `get_segments()` is a python iterator with each item is a `DatePeriod` instance for the sub-period: 
+
+```python
+>>> [period.label for period in dp.get_segments("month")]
+['2020-10-01 00:00:00 till 2020-10-31 23:59:59.999999',
+ '2020-11-01 00:00:00 till 2020-11-30 23:59:59.999999',
+ '2020-12-01 00:00:00 till 2020-12-31 23:59:59.999999',
+ '2021-01-01 00:00:00 till 2021-01-31 23:59:59.999999',
+ '2021-02-01 00:00:00 till 2021-02-28 23:59:59.999999',
+ '2021-03-01 00:00:00 till 2021-03-31 23:59:59.999999',
+ '2021-04-01 00:00:00 till 2021-04-30 23:59:59.999999']
+```
+
+## Installation
 
 
 
+## Roadmap
 
+- [ ] Add merge (`+`) operator for `DatePeriods`
+- [ ] Add option to `DatePeriods.get_segments` to ensure sub-periods are fully within base period
