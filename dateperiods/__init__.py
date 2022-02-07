@@ -7,7 +7,7 @@
 import cftime
 import calendar
 import numpy as np
-from typing import List
+from typing import List, Union
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
@@ -29,7 +29,11 @@ class DatePeriod(object):
     Container for managing periods of dates and their segmentation into sub-periods
     """
 
-    def __init__(self, tcs_def, tce_def=None, unit=None, calendar=None):
+    def __init__(self,
+                 tcs_def: Union[List, "datetime", "date"],
+                 tce_def: Union[List, "datetime", "date"] = None,
+                 unit: str = None,
+                 calendar_name: str = None) -> None:
         """
         Establish a period defined by the start (tcs) and end (tce) of the time coverage.
         The start and end time can be specified with the following tpyes:
