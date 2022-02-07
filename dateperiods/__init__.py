@@ -7,7 +7,7 @@
 import cftime
 import calendar
 import numpy as np
-from typing import List, Union
+from typing import List, Union, Dict, Tuple
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
@@ -21,7 +21,7 @@ __author__ = "Stefan Hendricks"
 __author_email__ = "stefan.hendricks@awi.de"
 
 # Imports
-__all__ = ["DatePeriod", "PeriodIterator"]
+__all__ = ["DatePeriod", "PeriodIterator", "DateDefinition", "DateDuration"]
 
 
 class DatePeriod(object):
@@ -30,8 +30,8 @@ class DatePeriod(object):
     """
 
     def __init__(self,
-                 tcs_def: Union[List, "datetime", "date"],
-                 tce_def: Union[List, "datetime", "date"] = None,
+                 tcs_def: Union[List[int], "datetime", "date"],
+                 tce_def: Union[List[int], "datetime", "date"] = None,
                  unit: str = None,
                  calendar_name: str = None) -> None:
         """
@@ -60,8 +60,8 @@ class DatePeriod(object):
         if tce_def is None:
             tce_def = tcs_def
 
-        self._tcs = _DateDefinition(tcs_def, "tcs", unit=self._unit, calendar_name=self._calendar)
-        self._tce = _DateDefinition(tce_def, "tce", unit=self._unit, calendar_name=self._calendar)
+        self._tcs = DateDefinition(tcs_def, "tcs", unit=self._unit, calendar_name=self._calendar)
+        self._tce = DateDefinition(tce_def, "tce", unit=self._unit, calendar_name=self._calendar)
 
         # Make sure the period is valid, e.g. that start is before ends
         if self._tce.dt < self._tcs.dt:
@@ -70,9 +70,9 @@ class DatePeriod(object):
             raise ValueError(msg)
 
         # Init the duration property
-        self._duration = _DateDuration(self.tcs, self.tce)
+        self._duration = DateDuration(self.tcs, self.tce)
 
-    def get_id(self, dt_fmt="%Y%m%dT%H%M%S"):
+    def get_id(self, dt_fmt: str = "%Y%m%dT%H%M%S") -> str:
         """
         Returns an id of the period with customizable date format
         :param dt_fmt: 
@@ -80,7 +80,7 @@ class DatePeriod(object):
         """
         return self.tcs.dt.strftime(dt_fmt) + "_" + self.tce.dt.strftime(dt_fmt)
 
-    def get_segments(self, duration_type: str, crop_to_period=False):
+    def get_segments(self, duration_type: str, crop_to_period=False) -> "PeriodIterator":
         """
         Return an iterator that divides the period into the segments with the specified duration.
         The iterations will be of type DatePeriod. If a duration is longer than the duration of the
@@ -117,7 +117,7 @@ class DatePeriod(object):
 
         return prditer
 
-    def get_netcdf_attributes(self, zulu=True):
+    def get_netcdf_attributes(self, zulu: bool = True) -> Dict:
         """
         Get a dictionary with standard netCDF attributes for a period
 
@@ -138,7 +138,7 @@ class DatePeriod(object):
                     time_coverage_duration=self.duration.isoformat,
                     time_coverage_resolution=self.duration.isoformat)
 
-    def has_overlap(self, period):
+    def has_overlap(self, period: "DatePeriod") -> bool:
         """
         Returns bool flag if this period has (partial) overlap with another period
         :param period:
@@ -153,7 +153,7 @@ class DatePeriod(object):
 
         return self.tcs.date <= period.tce.date and self.tce.date >= period.tcs.date
 
-    def intersect(self, period):
+    def intersect(self, period: "DatePeriod") -> Union["DatePeriod", None]:
         """
         Computes the intersection and with another DatePeriod instance and returns
         a corresponding DatePeriod instance.
@@ -179,45 +179,45 @@ class DatePeriod(object):
         return DatePeriod(intersect_start_date, intersect_end_date)
 
     @property
-    def tcs(self):
+    def tcs(self) -> "DateDefinition":
         """ tcs: time coverage start as datetime object """
         return self._tcs
 
     @property
-    def tce(self):
+    def tce(self) -> "DateDefinition":
         """ tce: time coverage end as datetime object """
         return self._tce
 
     @property
-    def duration(self):
+    def duration(self) -> "DateDuration":
         return self._duration
 
     @property
-    def label(self):
+    def label(self) -> str:
         return str(self.tcs.dt) + " till " + str(self.tce.dt)
 
     @property
-    def center(self):
+    def center(self) -> "datetime":
         tdelta_seconds = (self.tce.dt - self.tcs.dt).total_seconds()
         return self.tcs.dt + timedelta(seconds=int(round(0.5*tdelta_seconds, 0)))
 
     @property
-    def center_datenum(self):
+    def center_datenum(self) -> float:
         return cftime.date2num(self.center, self.unit, self.calendar)
 
     @property
-    def date_label(self):
+    def date_label(self) -> str:
         return str(self.tcs.date) + " till " + str(self.tce.date)
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return str(self._unit)
 
     @property
-    def calendar(self):
+    def calendar(self) -> str:
         return str(self._calendar)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         output = "DatePeriod:\n"
         for field in ["tcs", "tce"]:
             output += "%12s: %s" % (field, getattr(self, field).dt)
@@ -231,7 +231,10 @@ class PeriodIterator(object):
     as an iterator, but also filtered after initial segmentation
     """
 
-    def __init__(self, base_period: DatePeriod, segment_duration: str):
+    def __init__(self,
+                 base_period: "DatePeriod",
+                 segment_duration: str
+                 ) -> None:
         """
         Create an iterator over a segment of a base period with a given duration
         :param base_period:
@@ -250,7 +253,7 @@ class PeriodIterator(object):
         self._segment_list = []
         self._get_segment_list()
 
-    def __iter__(self):
+    def __iter__(self) -> "PeriodIterator":
         """
         Mandatory iteration init method
         :return:
@@ -259,7 +262,7 @@ class PeriodIterator(object):
         self.index = 0
         return self
 
-    def __next__(self):
+    def __next__(self) -> "DatePeriod":
         """
         Mandatory iteration handler method
         :return:
@@ -270,7 +273,7 @@ class PeriodIterator(object):
         self.index += 1
         return self._segment_list[index]
 
-    def crop_to_period(self, period):
+    def crop_to_period(self, period: "DatePeriod") -> None:
         """
         Will cause all segments to be cropped by the dates of the period according to the following
         rules:
@@ -290,7 +293,7 @@ class PeriodIterator(object):
         # Overwrite the list of segments
         self._segment_list = cropped_segments
 
-    def _get_segment_list(self):
+    def _get_segment_list(self) -> None:
         """
         Compute the list of segments based on the input parameters. The work is delegated to the respective
         methods for each duraction type. All of these methods have to return a list of DatePeriod objects
@@ -303,12 +306,11 @@ class PeriodIterator(object):
         base_tcs, base_tce = self.base_period.tcs.dt, self.base_period.tce.dt
         self._segment_list.extend(funcs[self.segment_duration](base_tcs, base_tce))
 
-    def filter_month(self, month_nums):
+    def filter_month(self, month_nums: List[int]) -> None:
         """
-        Removes segments for if the the month of both start and end of the time coverage is in a list
+        Removes segments for if the month of both start and end of the time coverage is in a list
         of month that should be removed from the iterator.
         The origin of this filter function comes from the omission of summer month.
-        #TODO: Thinks of a more general filter rule
         :param month_nums: integer (list/tuple or scalar) of month number (1-12)
         :return:
         """
@@ -329,7 +331,7 @@ class PeriodIterator(object):
         self._segment_list = filter_segments
 
     @staticmethod
-    def days_list(start_dt, end_dt):
+    def days_list(start_dt: "datetime", end_dt: "datetime") -> List[List[int]]:
         """
         Return a list of all days (tuples of year, month, day) of all days between to
         datetimes
@@ -338,12 +340,12 @@ class PeriodIterator(object):
         :return: list
         """
         return [
-            (d.year, d.month, d.day)
+            [d.year, d.month, d.day]
             for d in rrule(DAILY, dtstart=start_dt, until=end_dt)
         ]
 
     @staticmethod
-    def months_list(start_dt, end_dt):
+    def months_list(start_dt: "datetime", end_dt: "datetime") -> List[List[int]]:
         """
         Return a list of all month (tuples of year, month) of all months between to datetimes
         :param start_dt: datetime.datetime
@@ -352,10 +354,10 @@ class PeriodIterator(object):
         """
         start = datetime(start_dt.year, start_dt.month, 1)
         end = datetime(end_dt.year, end_dt.month, 1)
-        return [(d.year, d.month) for d in rrule(MONTHLY, dtstart=start, until=end)]
+        return [[d.year, d.month] for d in rrule(MONTHLY, dtstart=start, until=end)]
 
     @staticmethod
-    def years_list(start_dt, end_dt):
+    def years_list(start_dt: "datetime", end_dt: "datetime") -> List[int]:
         """
         Return a list of all month (tuples of year, month) of all months between to datetimes
         :param start_dt: datetime.datetime
@@ -367,7 +369,7 @@ class PeriodIterator(object):
         return [d.year for d in rrule(YEARLY, dtstart=start, until=end)]
 
     @classmethod
-    def get_day_segments(cls, start_dt, end_dt):
+    def get_day_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
         """
         Return a list of daily DatePeriods between to datetimes
         :param start_dt: datetime.datetime
@@ -377,7 +379,7 @@ class PeriodIterator(object):
         return [DatePeriod(d, d) for d in cls.days_list(start_dt, end_dt)]
 
     @classmethod
-    def get_isoweek_segments(cls, start_dt, end_dt):
+    def get_isoweek_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
         """
         Return a list of isoweek DatePeriods between to datetimes
         :param start_dt: datetime.datetime
@@ -406,7 +408,7 @@ class PeriodIterator(object):
         return segments
 
     @classmethod
-    def get_month_segments(cls, start_dt, end_dt):
+    def get_month_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
         """
         Return a list of monthly DatePeriods between to datetimes
         :param start_dt: datetime.datetime
@@ -416,7 +418,7 @@ class PeriodIterator(object):
         return [DatePeriod(m, m) for m in cls.months_list(start_dt, end_dt)]
 
     @classmethod
-    def get_year_segments(cls, start_dt, end_dt):
+    def get_year_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
         """
         Return a list of monthly DatePeriods between to datetimes
         :param start_dt: datetime.datetime
@@ -426,25 +428,30 @@ class PeriodIterator(object):
         return [DatePeriod([y], [y]) for y in cls.years_list(start_dt, end_dt)]
 
     @property
-    def valid_segment_duration(self):
+    def valid_segment_duration(self) -> List[str]:
         return ["year", "month", "isoweek", "day"]
 
     @property
-    def n_periods(self):
+    def n_periods(self) -> int:
         return len(self._segment_list)
 
     @property
-    def list(self):
+    def list(self) -> List["DatePeriod"]:
         return list(self._segment_list)
 
 
-class _DateDefinition(object):
+class DateDefinition(object):
     """
     Container for a start or end date with corresponding properties, with the functionality
     to either define a date or generate from year, year+month, year+month+day lists
     """
 
-    def __init__(self, date_def, tcs_or_tce, unit=None, calendar_name=None) -> None:
+    def __init__(self,
+                 date_def: "DateDefinition",
+                 tcs_or_tce: str,
+                 unit: str = None,
+                 calendar_name: str = None
+                 ) -> None:
         """
         Creates date container from various input formats. Valid date definitions are:
             1. datetime.datetime
@@ -481,7 +488,7 @@ class _DateDefinition(object):
         # main year, month, day class properties
         self._decode_date_def()
 
-    def _decode_date_def(self):
+    def _decode_date_def(self) -> None:
         """
         Decode the input date definition to this class
         :return:
@@ -512,7 +519,7 @@ class _DateDefinition(object):
         self._day = day
 
     @staticmethod
-    def _decode_int_list(int_list: List[int], tcs_or_tce: str):
+    def _decode_int_list(int_list: List[int], tcs_or_tce: str) -> Tuple[int, int, int]:
         """ Returns a datetime object from an integer date list of type [yyyy, mm, [dd]].
         The datetime object will point to the first microsecond of the day for the
         start time (start_or_stop := "start") or the last microsecond
@@ -552,7 +559,7 @@ class _DateDefinition(object):
         return year, month, day
 
     @property
-    def year(self):
+    def year(self) -> int:
         """
         The year as integer number
         :return: int
@@ -560,7 +567,7 @@ class _DateDefinition(object):
         return int(self._year)
 
     @property
-    def month(self):
+    def month(self) -> int:
         """
         The month as integer number
         :return: int
@@ -568,7 +575,7 @@ class _DateDefinition(object):
         return int(self._month)
 
     @property
-    def day(self):
+    def day(self) -> int:
         """
         The day as integer number
         :return: int
@@ -576,7 +583,7 @@ class _DateDefinition(object):
         return int(self._day)
 
     @property
-    def date(self) -> "datetime.date":
+    def date(self) -> "date":
         """
         The date definition as `datetime.date`
         :return: `datetime.date`
@@ -584,7 +591,7 @@ class _DateDefinition(object):
         return date(self.year, self.month, self.day)
 
     @property
-    def dt(self):
+    def dt(self) -> "datetime":
         """
         The date as datetime object. Note: if this date definition is the end of the time coverage,
         the time coverage will be extended to 23:59:59.9999 of the date
@@ -597,7 +604,7 @@ class _DateDefinition(object):
         return dt
 
     @property
-    def datenum(self):
+    def datenum(self) -> float:
         """
         The date in numerical expression. Values depend on calendar and unit
         :return: float
@@ -605,11 +612,11 @@ class _DateDefinition(object):
         return cftime.date2num(self.dt, self.unit, self.calendar)
 
     @property
-    def type(self):
+    def type(self) -> str:
         return str(self._tcs_or_tce)
 
     @property
-    def is_tcs(self):
+    def is_tcs(self) -> bool:
         """
         Flag if the date definition is marked as the beginning of the time coverage
         :return: bool
@@ -617,7 +624,7 @@ class _DateDefinition(object):
         return self.type == "tcs"
 
     @property
-    def is_tce(self):
+    def is_tce(self) -> bool:
         """
         Flag if the date definition is marked as the end of the time coverage
         :return: bool
@@ -625,7 +632,7 @@ class _DateDefinition(object):
         return self.type == "tce"
 
     @property
-    def is_monday(self):
+    def is_monday(self) -> bool:
         """
         Flag if the current day is a Monday
         :return: bool
@@ -633,7 +640,7 @@ class _DateDefinition(object):
         return self.dt.isoweekday() == 1
 
     @property
-    def is_sunday(self):
+    def is_sunday(self) -> bool:
         """
         Flag if the current day is a Sunday
         :return: bool
@@ -641,7 +648,7 @@ class _DateDefinition(object):
         return self.dt.isoweekday() == 7
 
     @property
-    def is_last_day_of_month(self):
+    def is_last_day_of_month(self) -> bool:
         """
         Flag if the current day is the last day in a month
         :return: bool
@@ -650,7 +657,7 @@ class _DateDefinition(object):
         return self.dt.month != next_date.month
 
     @property
-    def valid_tcs_or_tce_values(self):
+    def valid_tcs_or_tce_values(self) -> List[str]:
         """
         The valid tags for time coverage start and time coverage end
         :return: str list
@@ -658,24 +665,27 @@ class _DateDefinition(object):
         return list(["tcs", "tce"])
 
     @property
-    def unit(self):
+    def unit(self) -> str:
         return str(self._unit)
 
     @property
-    def calendar(self):
+    def calendar(self) -> str:
         return str(self._calendar)
 
 
-class _DateDuration(object):
+class DateDuration(object):
     """
     Container for duration parameters of the period between two dates
     """
 
-    def __init__(self, tcs: _DateDefinition, tce: _DateDefinition):
+    def __init__(self,
+                 tcs: "DateDefinition",
+                 tce: "DateDefinition"
+                 ) -> None:
         """
         Compute the duration between two dates
-        :param tcs: _DateDefinition
-        :param tce: _DateDefinition
+        :param tcs: DateDefinition
+        :param tce: DateDefinition
         """
 
         # Basic sanity check
@@ -687,15 +697,15 @@ class _DateDuration(object):
         self._tce = tce
 
     @property
-    def tcs(self):
+    def tcs(self) -> "DateDefinition":
         return self._tcs
 
     @property
-    def tce(self):
+    def tce(self) -> "DateDefinition":
         return self._tce
 
     @property
-    def total_seconds(self):
+    def total_seconds(self) -> float:
         """
         The number of seconds
         :return: int
@@ -703,7 +713,7 @@ class _DateDuration(object):
         return (self.tce.dt - self.tcs.dt).total_seconds()
 
     @property
-    def total_days(self):
+    def total_days(self) -> int:
         """
         Number of days between start and end (1 if both are the same day)
         :return: int
@@ -711,7 +721,7 @@ class _DateDuration(object):
         return (self.tce.dt - self.tcs.dt).days + 1
 
     @property
-    def is_day(self):
+    def is_day(self) -> bool:
         """
         Flag if the period is a full month
         :return: bool
@@ -719,7 +729,7 @@ class _DateDuration(object):
         return self.tcs.date == self.tce.date
 
     @property
-    def is_isoweek(self):
+    def is_isoweek(self) -> bool:
         """
         Flag if period is a default week (Monday to following Sunday)
         :return:
@@ -727,7 +737,7 @@ class _DateDuration(object):
         return self.tcs.is_monday and self.tce.is_sunday and self.total_days == 7
 
     @property
-    def is_month(self):
+    def is_month(self) -> bool:
         """
         Compute flag if the period is a full month
         :return: bool
@@ -745,7 +755,7 @@ class _DateDuration(object):
         return condition1 and condition2 and condition3
 
     @property
-    def is_year(self):
+    def is_year(self) -> bool:
         """
         Compute flag if the period is a full year
         :return: bool
@@ -763,7 +773,7 @@ class _DateDuration(object):
         return condition1 and condition2 and condition3
 
     @property
-    def duration(self):
+    def duration(self) -> "Duration":
         """
         Return a duration
         :return:
@@ -782,11 +792,11 @@ class _DateDuration(object):
                             minutes=tdelta.minutes, seconds=tdelta.seconds + 1)
 
     @property
-    def isoformat(self):
+    def isoformat(self) -> str:
         return duration_isoformat(self.duration)
 
     @property
-    def type(self):
+    def type(self) -> str:
         """
         Return a classifier that indicates the period duration type
         (e.g. year, month, isoweek, day, custom)
