@@ -91,7 +91,13 @@ The return value of `get_segments()` is a python iterator with each item is a `D
 
 ## Installation
 
+See the [release page](https://github.com/shendric/dateperiods/releases) of this project for the latest version of `dateperiods` and install either from the main branch
 
+`pip install "git+https://github.com/shendric/dateperiods.git`
+
+of for a specific verion
+
+`pip install "git+https://github.com/shendric/dateperiods.git@1.1.0`
 
 ## Roadmap
 
