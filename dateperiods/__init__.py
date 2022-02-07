@@ -439,6 +439,26 @@ class PeriodIterator(object):
     def list(self) -> List["DatePeriod"]:
         return list(self._segment_list)
 
+    def __repr__(self) -> str:
+        output = "PeriodIterator:\n"
+
+        fields = [
+            "tcs",
+            "tce"
+        ]
+        for field in fields:
+            output += "%18s: %s" % (field, getattr(self.base_period, field).dt)
+            output += "\n"
+        fields = [
+            "segment_duration",
+            "n_periods"
+        ]
+        for field in fields:
+            output += "%18s: %s" % (field, getattr(self, field))
+            output += "\n"
+
+        return output
+
 
 class DateDefinition(object):
     """
@@ -559,6 +579,10 @@ class DateDefinition(object):
         return year, month, day
 
     @property
+    def isoformat(self) -> str:
+        return self.dt.isoformat()
+
+    @property
     def year(self) -> int:
         """
         The year as integer number
@@ -648,6 +672,14 @@ class DateDefinition(object):
         return self.dt.isoweekday() == 7
 
     @property
+    def is_first_day_of_month(self) -> bool:
+        """
+        Flag if the current day is the last day in a month
+        :return: bool
+        """
+        return self.dt.day == 1
+
+    @property
     def is_last_day_of_month(self) -> bool:
         """
         Flag if the current day is the last day in a month
@@ -671,6 +703,21 @@ class DateDefinition(object):
     @property
     def calendar(self) -> str:
         return str(self._calendar)
+
+    def __repr__(self):
+        output = "DateDefinition:\n"
+        fields = [
+            "isoformat",
+            "type",
+            "is_monday",
+            "is_sunday",
+            "is_first_day_of_month",
+            "is_last_day_of_month"
+        ]
+        for field in fields:
+            output += "%24s: %s" % (field, getattr(self, field))
+            output += "\n"
+        return output
 
 
 class DateDuration(object):
@@ -816,3 +863,20 @@ class DateDuration(object):
             return "day"
 
         return "custom"
+
+    def __repr__(self):
+        output = "DateDuration:\n"
+        fields = [
+            "isoformat",
+            "type",
+            "total_days",
+            "is_day",
+            "is_isoweek",
+            "is_month",
+            "is_year"
+        ]
+        for field in fields:
+            output += "%16s: %s" % (field, getattr(self, field))
+            output += "\n"
+        return output
+
