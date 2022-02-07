@@ -11,7 +11,7 @@ with open('LICENSE') as f:
 setup(
     name='dateperiods',
     version='1.1.0',
-    description='Managing date-based periods in python',
+    description='Periods between dates in python',
     long_description=readme,
     author='Stefan Hendricks',
     author_email='stefan.hendricks@awi.de',
