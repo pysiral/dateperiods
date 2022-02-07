@@ -467,7 +467,7 @@ class DateDefinition(object):
     """
 
     def __init__(self,
-                 date_def: "DateDefinition",
+                 date_def: Union[List[int], "datetime", "date"],
                  tcs_or_tce: str,
                  unit: str = None,
                  calendar_name: str = None
@@ -757,7 +757,7 @@ class DateDuration(object):
         The number of seconds
         :return: int
         """
-        return (self.tce.dt - self.tcs.dt).total_seconds()
+        return (self.tce.dt + relativedelta(microseconds=1) - self.tcs.dt).total_seconds()
 
     @property
     def total_days(self) -> int:
@@ -822,21 +822,13 @@ class DateDuration(object):
     @property
     def duration(self) -> "Duration":
         """
-        Return a duration
+        Return a `duration.Duration` object
         :return:
         """
-        """ Return a duration object """
-        if self.is_day:
-            return Duration(days=1)
-        elif self.is_month:
-            return Duration(months=1)
-        elif self.is_year:
-            return Duration(years=1)
-        else:
-            tdelta = relativedelta(dt1=self.tce.dt, dt2=self.tcs.dt)
-            return Duration(years=tdelta.years, months=tdelta.months,
-                            days=tdelta.days, hours=tdelta.hours,
-                            minutes=tdelta.minutes, seconds=tdelta.seconds + 1)
+        tdelta = relativedelta(dt1=self.tce.dt+relativedelta(microseconds=1), dt2=self.tcs.dt)
+        return Duration(years=tdelta.years, months=tdelta.months,
+                        days=tdelta.days, hours=tdelta.hours,
+                        minutes=tdelta.minutes, seconds=tdelta.seconds)
 
     @property
     def isoformat(self) -> str:
