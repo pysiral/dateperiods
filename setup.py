@@ -17,7 +17,7 @@ setup(
     author_email='stefan.hendricks@awi.de',
     url='https://github.com/shendric/dateperiods',
     license=license,
-    packages=find_packages(exclude=('tests')),
+    packages=find_packages(exclude=('tests',)),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
