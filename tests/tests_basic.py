@@ -64,6 +64,16 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertEqual(duration.isoformat, "P1Y")
         self.assertEqual(duration.type, "year")
 
+    def test_duration_years(self):
+        prd = dateperiods.DatePeriod([2018, 10], [2020, 9])
+        duration = prd.duration
+        self.assertFalse(duration.is_month)
+        self.assertFalse(duration.is_day)
+        self.assertFalse(duration.is_isoweek)
+        self.assertFalse(duration.is_year)
+        self.assertEqual(duration.isoformat, "P2Y")
+        self.assertEqual(duration.type, "custom")
+
     def test_duration_month(self):
         prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
         duration = prd.duration
@@ -73,6 +83,16 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_year)
         self.assertEqual(duration.isoformat, "P1M")
         self.assertEqual(duration.type, "month")
+
+    def test_duration_months(self):
+        prd = dateperiods.DatePeriod([2018, 10], [2019, 4])
+        duration = prd.duration
+        self.assertFalse(duration.is_month)
+        self.assertFalse(duration.is_day)
+        self.assertFalse(duration.is_isoweek)
+        self.assertFalse(duration.is_year)
+        self.assertEqual(duration.isoformat, "P7M")
+        self.assertEqual(duration.type, "custom")
 
     def test_duration_isoweek(self):
         prd = dateperiods.DatePeriod([2018, 4, 2], [2018, 4, 8])
