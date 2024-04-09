@@ -6,6 +6,7 @@ from setuptools import find_packages, setup
 
 readme = pathlib.Path('README.md').read_text()
 license_txt = pathlib.Path('LICENSE').read_text()
+install_requires = pathlib.Path('requirements.txt').read_text()
 
 setup(
     name='dateperiods',
@@ -16,6 +17,7 @@ setup(
     author_email='stefan.hendricks@awi.de',
     url='https://github.com/shendric/dateperiods',
     license=license_txt,
+    install_requires=install_requires,
     packages=find_packages(exclude=('tests',)),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
