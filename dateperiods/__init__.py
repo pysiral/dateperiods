@@ -7,7 +7,11 @@
 import cftime
 import calendar
 import numpy as np
-from typing import List, Union, Dict, Tuple, Literal
+from typing import List, Union, Dict, Tuple
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
