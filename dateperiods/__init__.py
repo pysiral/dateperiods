@@ -4,20 +4,23 @@
 
 """
 
-import cftime
 import calendar
+from typing import Dict, List, Tuple, Union
+
+import cftime
 import numpy as np
-from typing import List, Union, Dict, Tuple
+
 try:
     from typing import Literal
 except ImportError:
     from typing_extensions import Literal
-from datetime import datetime, date, timedelta
-from dateutil.relativedelta import relativedelta
-from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
-from isodate.duration import Duration
-from isodate import duration_isoformat
 
+from datetime import date, datetime, timedelta
+
+from dateutil.relativedelta import relativedelta
+from dateutil.rrule import DAILY, MONTHLY, YEARLY, rrule
+from isodate import duration_isoformat
+from isodate.duration import Duration
 
 # Package Metadata
 __version__ = "1.2.0"

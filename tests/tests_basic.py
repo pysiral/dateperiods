@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from context import dateperiods
-
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
-
 import unittest
+from datetime import datetime
+
+from context import dateperiods
+from dateutil.relativedelta import relativedelta
 
 
 class BasicFunctionalityTestSuite(unittest.TestCase):
