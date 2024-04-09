@@ -1,5 +1,12 @@
 # History of changes
 
+## [1.2.1] 2024-04-09
+
+### Fixed
+- pip install now installs packages listed in requirements
+- Added required copyright statement for isodate
+- supported python versions now correct everywhere
+
 ## [1.2.0] - 2024-04-09
 
 ### Added
