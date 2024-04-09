@@ -99,6 +99,18 @@ of for a specific verion
 
 `pip install "git+https://github.com/shendric/dateperiods.git@1.1.0`
 
+## Copyright Statements
+
+### isodate
+
+This project uses isodate (https://github.com/gweis/isodate)
+
+Copyright (c) 2021, Hugo van Kemenade and contributors
+
+Copyright (c) 2009-2018, Gerhard Weis and contributors
+
+Copyright (c) 2009, Gerhard Weis
+
 ## Roadmap
 
 - [ ] Add merge (`+`) operator for `DatePeriods`
