@@ -2,3 +2,4 @@ cftime
 isodate
 numpy
 python-dateutil
+typing_extensions;python_version<="3.7"
