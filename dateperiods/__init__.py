@@ -7,7 +7,7 @@
 import cftime
 import calendar
 import numpy as np
-from typing import List, Union, Dict, Tuple, Literal
+from typing import List, Union, Dict, Tuple
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 from dateutil.rrule import rrule, MONTHLY, DAILY, YEARLY
@@ -16,7 +16,7 @@ from isodate import duration_isoformat
 
 
 # Package Metadata
-__version__ = "1.2.0"
+__version__ = "1.1.0"
 __author__ = "Stefan Hendricks"
 __author_email__ = "stefan.hendricks@awi.de"
 
@@ -29,13 +29,11 @@ class DatePeriod(object):
     Container for managing periods of dates and their segmentation into sub-periods
     """
 
-    def __init__(
-        self,
-        tcs_def: Union[List[int], "datetime", "date"],
-        tce_def: Union[List[int], "datetime", "date"] = None,
-        unit: str = None,
-        calendar_name: str = None
-    ) -> None:
+    def __init__(self,
+                 tcs_def: Union[List[int], "datetime", "date"],
+                 tce_def: Union[List[int], "datetime", "date"] = None,
+                 unit: str = None,
+                 calendar_name: str = None) -> None:
         """
         Establish a period defined by the start (tcs) and end (tce) of the time coverage.
         The start and end time can be specified with the following tpyes:
@@ -80,7 +78,7 @@ class DatePeriod(object):
         :param dt_fmt: 
         :return: 
         """
-        return f"{self.tcs.dt.strftime(dt_fmt)}_{self.tce.dt.strftime(dt_fmt)}"
+        return self.tcs.dt.strftime(dt_fmt) + "_" + self.tce.dt.strftime(dt_fmt)
 
     def get_segments(self, duration_type: str, crop_to_period=False) -> "PeriodIterator":
         """
@@ -99,7 +97,7 @@ class DatePeriod(object):
 
         # Input validation
         if not isinstance(crop_to_period, bool):
-            msg = f"Keyword `limit_to_period` must be `True`or `False` (bool), was {crop_to_period}"
+            msg = "Keyword `limit_to_period` must be `True`or `False` (bool), was {}".format(crop_to_period)
             raise ValueError(msg)
 
         # NOTE: Sanity Check of input args will be done in the PeriodIterator instance
@@ -135,24 +133,24 @@ class DatePeriod(object):
         dt_fmt = "%Y%m%dT%H%M%S"
         if zulu:
             dt_fmt += "Z"
-        return dict(
-            time_coverage_start=self.tcs.dt.strftime(dt_fmt),
-            time_coverage_end=self.tce.dt.strftime(dt_fmt),
-            time_coverage_duration=self.duration.isoformat,
-            time_coverage_resolution=self.duration.isoformat
-        )
+        return dict(time_coverage_start=self.tcs.dt.strftime(dt_fmt),
+                    time_coverage_end=self.tce.dt.strftime(dt_fmt),
+                    time_coverage_duration=self.duration.isoformat,
+                    time_coverage_resolution=self.duration.isoformat)
 
     def has_overlap(self, period: "DatePeriod") -> bool:
         """
         Returns bool flag if this period has (partial) overlap with another period
-
         :param period:
-
         :return:
         """
+
+        # Input validation
         if not isinstance(period, DatePeriod):
-            msg = f"period argument must be of type dateperiods.DatePeriod (was {type(period)})"
+            msg = "period argument must be of type dateperiods.DatePeriod (was {})"
+            msg = msg.format(type(period))
             raise ValueError(msg)
+
         return self.tcs.date <= period.tce.date and self.tce.date >= period.tcs.date
 
     def intersect(self, period: "DatePeriod") -> Union["DatePeriod", None]:
@@ -196,7 +194,7 @@ class DatePeriod(object):
 
     @property
     def label(self) -> str:
-        return f"{str(self.tcs.dt)} till {str(self.tce.dt)}"
+        return str(self.tcs.dt) + " till " + str(self.tce.dt)
 
     @property
     def center(self) -> "datetime":
@@ -209,7 +207,7 @@ class DatePeriod(object):
 
     @property
     def date_label(self) -> str:
-        return f"{str(self.tcs.date)} till {str(self.tce.date)}"
+        return str(self.tcs.date) + " till " + str(self.tce.date)
 
     @property
     def unit(self) -> str:
@@ -267,8 +265,7 @@ class PeriodIterator(object):
     def __next__(self) -> "DatePeriod":
         """
         Mandatory iteration handler method
-
-        :return: next element
+        :return:
         """
         index = int(self.index)
         if index > self.n_periods - 1:
@@ -283,9 +280,7 @@ class PeriodIterator(object):
             - segments with partial overlap will be cropped
             - segments with no overlap will be removed
             - segments with full will remain unchanged.
-
         :param period: dateperiods.DatePeriod
-
         :return: None
         """
 
@@ -316,16 +311,12 @@ class PeriodIterator(object):
         Removes segments for if the month of both start and end of the time coverage is in a list
         of month that should be removed from the iterator.
         The origin of this filter function comes from the omission of summer month.
-
         :param month_nums: integer (list/tuple or scalar) of month number (1-12)
-
-        :return: None
+        :return:
         """
 
         # Make sure the input is always a list
-        month_nums = (
-            month_nums if isinstance(month_nums, (list, tuple)) else [month_nums]
-        )
+        month_nums = month_nums if isinstance(month_nums, (list, tuple)) else list([month_nums])
 
         # Input validation
         valid_flag = [m in list(range(1, 13)) for m in month_nums]
@@ -491,7 +482,6 @@ class DateDefinition(object):
             - if day is omitted, the date will be set as first (tcs) or last (tce) day of the month
             - if day and month are omitted, the date will be set to the first (tcs) or last (tce)
               day of the year
-
         :param date_def:
         :param tcs_or_tce:
         :param unit:
@@ -503,7 +493,7 @@ class DateDefinition(object):
         if tcs_or_tce in self.valid_tcs_or_tce_values:
             self._tcs_or_tce = tcs_or_tce
         else:
-            msg = f"Invalid tce_or_tcs: {tcs_or_tce} -> must be 'tcs' or 'tce'"
+            msg = "Invalid tce_or_tcs: {} -> must be 'tcs' or 'tce'".format(str(tcs_or_tce))
             raise ValueError(msg)
 
         self._unit = unit if unit is not None else "seconds since 1970-01-01"
@@ -550,8 +540,7 @@ class DateDefinition(object):
 
     @staticmethod
     def _decode_int_list(int_list: List[int], tcs_or_tce: str) -> Tuple[int, int, int]:
-        """
-        Returns a datetime object from an integer date list of type [yyyy, mm, [dd]].
+        """ Returns a datetime object from an integer date list of type [yyyy, mm, [dd]].
         The datetime object will point to the first microsecond of the day for the
         start time (start_or_stop := "start") or the last microsecond
         """
@@ -559,7 +548,7 @@ class DateDefinition(object):
         # Validate input
         n_entries = len(int_list)
         if n_entries < 1 or n_entries > 3:
-            msg = f"Invalid integer date definition: {int_list} -> (year, [month], [day]"
+            msg = "Invalid integer date definition: {} -> (year, [month], [day]".format(str(int_list))
             raise ValueError(msg)
 
         # Autofill integer list if day or month+day are omitted
@@ -582,9 +571,9 @@ class DateDefinition(object):
         # All variables (year, month, day) are defined at this point. This must be a valid date for datetime
         try:
             _ = datetime(year, month, day)
-        except ValueError as e:
-            msg = f"Invalid date: {year}, {month}, {day} []"
-            raise ValueError(msg) from e
+        except ValueError:
+            msg = "Invalid date: {}, {}, {} []".format(year, month, day, tcs_or_tce)
+            raise ValueError(msg)
 
         # All done, return the values
         return year, month, day
@@ -654,7 +643,6 @@ class DateDefinition(object):
     def is_tcs(self) -> bool:
         """
         Flag if the date definition is marked as the beginning of the time coverage
-
         :return: bool
         """
         return self.type == "tcs"
@@ -663,7 +651,6 @@ class DateDefinition(object):
     def is_tce(self) -> bool:
         """
         Flag if the date definition is marked as the end of the time coverage
-
         :return: bool
         """
         return self.type == "tce"
@@ -672,7 +659,6 @@ class DateDefinition(object):
     def is_monday(self) -> bool:
         """
         Flag if the current day is a Monday
-
         :return: bool
         """
         return self.dt.isoweekday() == 1
@@ -697,20 +683,18 @@ class DateDefinition(object):
     def is_last_day_of_month(self) -> bool:
         """
         Flag if the current day is the last day in a month
-
         :return: bool
         """
         next_date = self.dt + relativedelta(days=1)
         return self.dt.month != next_date.month
 
     @property
-    def valid_tcs_or_tce_values(self) -> List[Literal["tcs", "tce"]]:
+    def valid_tcs_or_tce_values(self) -> List[str]:
         """
         The valid tags for time coverage start and time coverage end
-
         :return: str list
         """
-        return ["tcs", "tce"]
+        return list(["tcs", "tce"])
 
     @property
     def unit(self) -> str:
@@ -736,9 +720,6 @@ class DateDefinition(object):
         return output
 
 
-DurationType = Literal["year", "month", "isoweek", "day", "custom"]
-
-
 class DateDuration(object):
     """
     Container for duration parameters of the period between two dates
@@ -756,7 +737,7 @@ class DateDuration(object):
 
         # Basic sanity check
         if tce.dt <= tcs.dt:
-            raise ValueError(f"End {tcs} <= Start {tce}")
+            raise ValueError("End {} <= Start {}".format(tcs, tce))
 
         # Arguments
         self._tcs = tcs
@@ -844,41 +825,35 @@ class DateDuration(object):
         Return a `duration.Duration` object
         :return:
         """
-        tdelta = relativedelta(
-            dt1=self.tce.dt+relativedelta(microseconds=1),
-            dt2=self.tcs.dt
-        )
-        return Duration(
-            years=tdelta.years,
-            months=tdelta.months,
-            days=tdelta.days,
-            hours=tdelta.hours,
-            minutes=tdelta.minutes,
-            seconds=tdelta.seconds
-        )
+        tdelta = relativedelta(dt1=self.tce.dt+relativedelta(microseconds=1), dt2=self.tcs.dt)
+        return Duration(years=tdelta.years, months=tdelta.months,
+                        days=tdelta.days, hours=tdelta.hours,
+                        minutes=tdelta.minutes, seconds=tdelta.seconds)
 
     @property
     def isoformat(self) -> str:
         return duration_isoformat(self.duration)
 
     @property
-    def type(self) -> DurationType:
+    def type(self) -> str:
         """
         Return a classifier that indicates the period duration type
         (e.g. year, month, isoweek, day, custom)
-
-        :return: Name of the period type
+        :return: str
         """
-        period_fixed_types: List[Tuple[bool, DurationType]] = [
-            (self.is_year, "year"),
-            (self.is_month, "month"),
-            (self.is_isoweek, "isoweek"),
-            (self.is_day, "day"),
-        ]
-        # sourcery skip: use-next
-        for condition, period_type in period_fixed_types:
-            if condition:
-                return period_type
+
+        if self.is_year:
+            return "year"
+
+        if self.is_month:
+            return "month"
+
+        if self.is_isoweek:
+            return "isoweek"
+
+        if self.is_day:
+            return "day"
+
         return "custom"
 
     def __repr__(self):
@@ -896,3 +871,4 @@ class DateDuration(object):
             output += "%16s: %s" % (field, getattr(self, field))
             output += "\n"
         return output
+

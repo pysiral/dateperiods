@@ -29,7 +29,7 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
         self.assertRaises(ValueError, dateperiods.DatePeriod, datetime(2018, 4, 2), datetime(2018, 4, 1))
 
     def test_tcs_tce_always_full_days(self):
-        tcs_reference_dt = datetime(2018, 4, 1)
+        tcs_reference_dt = datetime(2018, 4, 1, 0, 0, 0)
         tce_reference_dt = datetime(2018, 5, 1) - relativedelta(microseconds=1)
         prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
         self.assertEqual(prd.tcs.dt, tcs_reference_dt)
@@ -40,7 +40,7 @@ class BasicFunctionalityTestSuite(unittest.TestCase):
 
     def test_netcdf_attribute_dict(self):
         prd = dateperiods.DatePeriod([2018, 4, 1], [2018, 4, 1])
-        attr_dict = prd.get_netcdf_attributes()
+        attr_dict = prd.get_netcdf_attributes(zulu=True)
         self.assertTrue("time_coverage_start" in attr_dict)
         self.assertEqual(attr_dict["time_coverage_start"], "20180401T000000Z")
         self.assertTrue("time_coverage_end" in attr_dict)

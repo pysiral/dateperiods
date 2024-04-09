@@ -1,11 +1,5 @@
 # History of changes
 
-## [1.2.0] - 2024-04-09
-
-### Added
-- code style
-- python 3.10 and 3.11 tests
-
 ## [1.1.0] - 2022-07-02
 
 ### Added

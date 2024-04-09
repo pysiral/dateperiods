@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import pathlib
 from setuptools import setup, find_packages
 
-readme = pathlib.Path('README.md').read_text()
-license_txt = pathlib.Path('LICENSE').read_text()
+with open('README.md') as f:
+    readme = f.read()
+
+with open('LICENSE') as f:
+    license_txt = f.read()
 
 setup(
     name='dateperiods',
-    version='1.2.0',
+    version='1.1.0',
     description='Periods between dates in python',
     long_description=readme,
     author='Stefan Hendricks',
@@ -25,8 +27,5 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-    ]
+        'Programming Language :: Python :: 3.9']
     )
