@@ -2,7 +2,7 @@
 
 ![Python package](https://github.com/shendric/dateperiods/workflows/Python%20package/badge.svg?branch=master)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-[![Python Version](https://img.shields.io/badge/python-3.6,_3.7,_3.8,_3.9-blue)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.6,_3.7,_3.8,_3.9,_3.10,_3.11-blue)](https://www.python.org/downloads/)
 
 ## About dateperiods
 
