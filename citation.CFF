@@ -5,5 +5,5 @@ authors:
     given-names: Stefan
     orcid: https://orcid.org/0000-0002-1412-3146
 title: "dateperiods: Periods between dates in python"
-version: v1.1.0
-date-released: 2022-02-07
+version: v1.3.0
+date-released: 2024-07-22
