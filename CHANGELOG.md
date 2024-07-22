@@ -1,5 +1,11 @@
 # History of changes
 
+## [1.3.0] 2024-07-22
+
+### Added
+- (Monthly) exclusion rules from `PeriodIterator`
+- python 3.12 tests
+
 ## [1.2.1] 2024-04-09
 
 ### Fixed
