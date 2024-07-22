@@ -10,12 +10,12 @@ install_requires = pathlib.Path('requirements.txt').read_text()
 
 setup(
     name='dateperiods',
-    version='1.2.0',
+    version='1.3.0',
     description='Periods between dates in python',
     long_description=readme,
     author='Stefan Hendricks',
     author_email='stefan.hendricks@awi.de',
-    url='https://github.com/shendric/dateperiods',
+    url='https://github.com/pysiral/dateperiods',
     license=license_txt,
     install_requires=install_requires,
     packages=find_packages(exclude=('tests',)),
