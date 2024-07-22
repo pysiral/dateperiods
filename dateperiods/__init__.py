@@ -5,7 +5,7 @@
 """
 
 import calendar
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union, Optional
 
 import cftime
 import numpy as np
@@ -31,6 +31,51 @@ __author_email__ = "stefan.hendricks@awi.de"
 __all__ = ["DatePeriod", "PeriodIterator", "DateDefinition", "DateDuration"]
 
 
+class ExcludeRuleNotSet(object):
+    """
+    Default
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    def __contains__(self, dt: datetime) -> Literal[False]:
+        return False
+
+    def __repr__(self) -> str:
+        return "Exclude Rule Not Set"
+
+
+class ExcludeMonth(object):
+    """
+    Rule to exclude certain months from the period iterator.
+
+    Usage:
+
+    >>> exclude_rule = ExcludeMonth([5, 6, 7, 8, 9])
+    >>> datetime(2015, 6, 10) in exclude_rule
+    True
+
+    :param months: Month number of list of month numbers to exclude
+        from iterator
+
+    :raises ValueError: Invalid month number input
+    """
+
+    def __init__(self, months: Union[int, List[int]]) -> None:
+        months = sorted(months) if isinstance(months, list) else [months]
+        invalid_input = any(m not in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] for m in months)
+        if invalid_input:
+            raise ValueError(f"input does contain invalid month number: {months} [1, ..., 12]")
+        self.months = months
+
+    def __contains__(self, dt: datetime) -> bool:
+        return dt.month in self.months
+
+    def __repr__(self) -> str:
+        return f"ExcludeMonths: {self.months}"
+
+
 class DatePeriod(object):
     """
     Container for managing periods of dates and their segmentation into sub-periods
@@ -40,8 +85,9 @@ class DatePeriod(object):
         self,
         tcs_def: Union[List[int], "datetime", "date"],
         tce_def: Union[List[int], "datetime", "date"] = None,
-        unit: str = None,
-        calendar_name: str = None
+        exclude_rule: Optional[ExcludeMonth] = None,
+        unit: Optional[str] = None,
+        calendar_name: Optional[str] = None
     ) -> None:
         """
         Establish a period defined by the start (tcs) and end (tce) of the time coverage.
@@ -56,6 +102,7 @@ class DatePeriod(object):
 
         :param tcs_def: The definition for the start of the time coverage.
         :param tce_def: The definition for the end of the time coverage.
+
         :param unit:
         :param calendar_name:
         """
@@ -63,7 +110,7 @@ class DatePeriod(object):
         # Process the input date definitions
         self._unit = unit if unit is not None else "seconds since 1970-01-01"
         self._calendar = calendar_name if calendar_name is not None else "standard"
-
+        self.exclude_rule = exclude_rule if isinstance(exclude_rule, ExcludeMonth) else ExcludeRuleNotSet()
         # if time coverage end is omitted, use time coverage start as the definition
         # of the period.
         if tce_def is None:
@@ -84,8 +131,8 @@ class DatePeriod(object):
     def get_id(self, dt_fmt: str = "%Y%m%dT%H%M%S") -> str:
         """
         Returns an id of the period with customizable date format
-        :param dt_fmt: 
-        :return: 
+        :param dt_fmt:
+        :return:
         """
         return f"{self.tcs.dt.strftime(dt_fmt)}_{self.tce.dt.strftime(dt_fmt)}"
 
@@ -101,7 +148,7 @@ class DatePeriod(object):
 
         :param duration_type:
         :param crop_to_period:
-        :return: 
+        :return:
         """
 
         # Input validation
@@ -228,7 +275,7 @@ class DatePeriod(object):
 
     def __repr__(self) -> str:
         output = "DatePeriod:\n"
-        for field in ["tcs", "tce"]:
+        for field in ["tcs", "tce", "exclude_rule"]:
             output += "%12s: %s" % (field, getattr(self, field).dt)
             output += "\n"
         return output
@@ -257,6 +304,7 @@ class PeriodIterator(object):
             msg = msg.format(segment_duration, ",".join(self.valid_segment_duration))
             raise ValueError(msg)
         self.segment_duration = segment_duration
+        self.exclude_rule = base_period.exclude_rule
 
         # Construct the list of periods
         self._segment_list = []
@@ -311,12 +359,14 @@ class PeriodIterator(object):
         methods for each duraction type. All of these methods have to return a list of DatePeriod objects
         :return:
         """
-        funcs = dict(day=self.get_day_segments,
-                     isoweek=self.get_isoweek_segments,
-                     month=self.get_month_segments,
-                     year=self.get_year_segments)
+        funcs = dict(
+            day=self.get_day_segments,
+            isoweek=self.get_isoweek_segments,
+            month=self.get_month_segments,
+            year=self.get_year_segments
+        )
         base_tcs, base_tce = self.base_period.tcs.dt, self.base_period.tce.dt
-        self._segment_list.extend(funcs[self.segment_duration](base_tcs, base_tce))
+        self._segment_list.extend(funcs[self.segment_duration](base_tcs, base_tce, self.base_period.exclude_rule))
 
     def filter_month(self, month_nums: List[int]) -> None:
         """
@@ -347,37 +397,52 @@ class PeriodIterator(object):
         self._segment_list = filter_segments
 
     @staticmethod
-    def days_list(start_dt: "datetime", end_dt: "datetime") -> List[List[int]]:
+    def days_list(start_dt: "datetime", end_dt: "datetime") -> List[datetime]:
         """
         Return a list of all days (tuples of year, month, day) of all days between to
         datetimes
-        :param start_dt: datetime.datetime
-        :param end_dt: datetime.datetime
+        :param start_dt: `datetime.datetime`
+        :param end_dt: `datetime.datetime`
         :return: list
         """
         return [
-            [d.year, d.month, d.day]
+            datetime(d.year, d.month, d.day)
             for d in rrule(DAILY, dtstart=start_dt, until=end_dt)
         ]
 
     @staticmethod
-    def months_list(start_dt: "datetime", end_dt: "datetime") -> List[List[int]]:
+    def months_list(
+            start_dt: "datetime",
+            end_dt: "datetime",
+            exclude_rule: "ExcludeMonth"
+    ) -> List[List[int]]:
         """
         Return a list of all month (tuples of year, month) of all months between to datetimes
+        of the specific datetime is not in exclude rule
+
         :param start_dt: datetime.datetime
         :param end_dt: datetime.datetime
+        :param exclude_rule:
+
         :return: list
         """
         start = datetime(start_dt.year, start_dt.month, 1)
         end = datetime(end_dt.year, end_dt.month, 1)
-        return [[d.year, d.month] for d in rrule(MONTHLY, dtstart=start, until=end)]
+        return [[d.year, d.month] for d in rrule(MONTHLY, dtstart=start, until=end) if d not in exclude_rule]
 
     @staticmethod
-    def years_list(start_dt: "datetime", end_dt: "datetime") -> List[int]:
+    def years_list(
+            start_dt: "datetime",
+            end_dt: "datetime",
+    ) -> List[int]:
         """
         Return a list of all month (tuples of year, month) of all months between to datetimes
+
+        NOTE: For yearly iterations, the currently applied monthly exclude rule does not apply.
+
         :param start_dt: datetime.datetime
         :param end_dt: datetime.datetime
+
         :return: list
         """
         start = datetime(start_dt.year, 1, 1)
@@ -385,21 +450,37 @@ class PeriodIterator(object):
         return [d.year for d in rrule(YEARLY, dtstart=start, until=end)]
 
     @classmethod
-    def get_day_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
+    def get_day_segments(
+            cls,
+            start_dt: "datetime",
+            end_dt: "datetime",
+            exclude_rule: "ExcludeMonth"
+    ) -> List["DatePeriod"]:
         """
         Return a list of daily DatePeriods between to datetimes
+
         :param start_dt: datetime.datetime
         :param end_dt: datetime.datetime
-        :return: list
+        :param exclude_rule: Rule to determine period in exclusion list
+
+        :return: list of day segments
         """
-        return [DatePeriod(d, d) for d in cls.days_list(start_dt, end_dt)]
+        return [DatePeriod(d, d) for d in cls.days_list(start_dt, end_dt) if d not in exclude_rule]
 
     @classmethod
-    def get_isoweek_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
+    def get_isoweek_segments(
+            cls,
+            start_dt: "datetime",
+            end_dt: "datetime",
+            exclude_rule: "ExcludeMonth"
+    ) -> List["DatePeriod"]:
         """
         Return a list of isoweek DatePeriods between to datetimes
-        :param start_dt: datetime.datetime
-        :param end_dt: datetime.datetime
+
+        :param start_dt: `datetime.datetime`
+        :param end_dt: `datetime.datetime`
+        :param exclude_rule: Rule to determine period in exclusion list
+
         :return: list
         """
 
@@ -410,7 +491,7 @@ class PeriodIterator(object):
         # Isoweek segments are always Monday and start_dt might not be one
         # -> compute the offset
         start_day = list_of_days[0]
-        weekday_offset = datetime(*start_day).isoweekday() - 1
+        weekday_offset = start_day.isoweekday() - 1
 
         segments = []
         for i in np.arange(n_weeks):
@@ -418,28 +499,48 @@ class PeriodIterator(object):
             d1 = start_dt + relativedelta(days=int(i * 7) - weekday_offset)
             d2 = start_dt + relativedelta(days=int((i + 1) * 7 - 1) - weekday_offset)
 
+            prd = DatePeriod([d1.year, d1.month, d1.day], [d2.year, d2.month, d2.day])
+
+            if prd.center in exclude_rule:
+                continue
+
             # store start and stop day for each week
-            segments.append(DatePeriod([d1.year, d1.month, d1.day], [d2.year, d2.month, d2.day]))
+            segments.append(prd)
 
         return segments
 
     @classmethod
-    def get_month_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
+    def get_month_segments(
+            cls,
+            start_dt: "datetime",
+            end_dt: "datetime",
+            exclude_month: "ExcludeMonth"
+    ) -> List["DatePeriod"]:
         """
         Return a list of monthly DatePeriods between to datetimes
-        :param start_dt: datetime.datetime
-        :param end_dt: datetime.datetime
+
+        :param start_dt: Start date of Period
+        :param end_dt: End date of Period
+        :param exclude_month: List of month to exclude from iterator
+
         :return: list
         """
-        return [DatePeriod(m, m) for m in cls.months_list(start_dt, end_dt)]
+        return [DatePeriod(m, m) for m in cls.months_list(start_dt, end_dt, exclude_month)]
 
     @classmethod
-    def get_year_segments(cls, start_dt: "datetime", end_dt: "datetime") -> List["DatePeriod"]:
+    def get_year_segments(
+            cls,
+            start_dt: "datetime",
+            end_dt: "datetime",
+            *_   # exclude rule (not used for yearly segments
+    ) -> List["DatePeriod"]:
         """
-        Return a list of monthly DatePeriods between to datetimes
-        :param start_dt: datetime.datetime
-        :param end_dt: datetime.datetime
-        :return: list
+        Return a list of yearly DatePeriods between to datetimes
+
+        :param start_dt: `datetime.datetime`
+        :param end_dt: `datetime.datetime`
+
+        :return: list of yearly DatePeriod's
         """
         return [DatePeriod([y], [y]) for y in cls.years_list(start_dt, end_dt)]
 
@@ -467,6 +568,7 @@ class PeriodIterator(object):
             output += "\n"
         fields = [
             "segment_duration",
+            "exclude_rule",
             "n_periods"
         ]
         for field in fields:
@@ -478,34 +580,30 @@ class PeriodIterator(object):
 
 class DateDefinition(object):
     """
-    Container for a start or end date with corresponding properties, with the functionality
-    to either define a date or generate from year, year+month, year+month+day lists
+    Creates date container from various input formats. Valid date definitions are:
+        1. datetime.datetime
+        2. datetime.date
+        3. List/tuple of integers: [year, [month], [day]]
+    In case only year or only month is passed (option 3), than the date will be constructed
+    based on the value of tce_or_tcs:
+        - if day is omitted, the date will be set as first (tcs) or last (tce) day of the month
+        - if day and month are omitted, the date will be set to the first (tcs) or last (tce)
+          day of the year
+
+    :param date_def: Variable defining the date.
+    :param tcs_or_tce: Flag indicating whether date marks beginning of end of
+        period definition. Must be one of `tcs`  or `tce` (determines method
+        of autocompletion).
+    :param unit: `cftime` compliant time unit (default: `seconds since 1970-01-01`).
+    :param calendar_name: `cftime` compliant calendar name (default: `standard`).
     """
 
     def __init__(self,
                  date_def: Union[List[int], "datetime", "date"],
-                 tcs_or_tce: str,
-                 unit: str = None,
-                 calendar_name: str = None
+                 tcs_or_tce: Literal["tcs", "tce"],
+                 unit: Optional[str] = None,
+                 calendar_name: Optional[str] = None
                  ) -> None:
-        """
-        Creates date container from various input formats. Valid date definitions are:
-            1. datetime.datetime
-            2. datetime.date
-            3. List/tuple of integers: [year, [month], [day]]
-        In case only year or only month is passed (option 3), than the date will be constructed
-        based on the value of tce_or_tcs:
-            - if day is omitted, the date will be set as first (tcs) or last (tce) day of the month
-            - if day and month are omitted, the date will be set to the first (tcs) or last (tce)
-              day of the year
-
-        :param date_def:
-        :param tcs_or_tce:
-        :param unit:
-        :param calendar_name:
-        """
-
-        # Store args
         self._date_def = date_def
         if tcs_or_tce in self.valid_tcs_or_tce_values:
             self._tcs_or_tce = tcs_or_tce
@@ -757,6 +855,7 @@ class DateDuration(object):
                  ) -> None:
         """
         Compute the duration between two dates
+
         :param tcs: DateDefinition
         :param tce: DateDefinition
         """
