@@ -2,7 +2,7 @@
 
 ![Python package](https://github.com/pysiral/dateperiods/workflows/Python%20package/badge.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
-[![Python Version](https://img.shields.io/badge/python-3.9,_3.10,_3.11,_3.12-blue)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.10,_3.11,_3.12,_3.13-blue)](https://www.python.org/downloads/)
 
 ## About dateperiods
 
