@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from context import dateperiods
-
+import unittest
 from datetime import date
 
-import unittest
+from context import dateperiods
 
 
 class IteratorBasicFunctionalityTestSuite(unittest.TestCase):

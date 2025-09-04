@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import os
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from pathlib import Path
+
+PACKAGE_PATH = Path(__file__).parent.resolve() / ".." / "src"
+sys.path.insert(0, str(PACKAGE_PATH))
 
 import dateperiods
+
+__all__ = ["dateperiods"]
