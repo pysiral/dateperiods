@@ -3,7 +3,7 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: Hendricks
     given-names: Stefan
-    orcid: https://orcid.org/0000-0002-1412-3146
-title: "dateperiods: Periods between dates in python"
-version: v1.3.0
-date-released: 2024-07-22
+    orcid:
+title: "dateperiods: Manging time periods between dates in python"
+version: v1.4.0
+date-released: 2025-09-04

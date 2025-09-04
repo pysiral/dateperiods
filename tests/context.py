@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-import os
 import sys
+from pathlib import Path
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+PACKAGE_PATH = Path(__file__).parent.resolve() / ".." / "src"
+sys.path.insert(0, str(PACKAGE_PATH))
 
 import dateperiods
 
