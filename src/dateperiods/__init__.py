@@ -311,9 +311,11 @@ class DatePeriod(object):
 
     def __repr__(self) -> str:
         output = "DatePeriod:\n"
-        for field in ["tcs", "tce", "exclude_rule"]:
-            output += "%12s: %s" % (field, getattr(self, field).dt)
-            output += "\n"
+        base_format = "%12s: %s\n"
+        for field in ["tcs", "tce"]:
+            output += base_format % (field, getattr(self, field).dt)
+        output += base_format % ("definition", str(self.definition_level))
+        output += base_format % ("duration", str(self.duration.isoformat))
         return output
 
 
