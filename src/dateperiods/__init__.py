@@ -31,7 +31,7 @@ __author_email__ = "stefan.hendricks@awi.de"
 __all__ = ["DatePeriod", "PeriodIterator", "DateDefinition", "DateDurationType", "ExcludeMonth"]
 
 
-class DateDurationType(Enum, str):
+class DateDurationType(str, Enum):
     DAY = "P1D"
     ISOWEEK = "ISOWEEK"
     MONTH = "P1M"
