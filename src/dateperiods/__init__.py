@@ -23,7 +23,7 @@ from isodate import duration_isoformat
 from isodate.duration import Duration
 
 # Package Metadata
-__version__ = "1.2.0"
+__version__ = "1.4.0"
 __author__ = "Stefan Hendricks"
 __author_email__ = "stefan.hendricks@awi.de"
 

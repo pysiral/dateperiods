@@ -12,11 +12,13 @@ The package `dateperiods` is meant to make iterating over certain periods betwee
 ### Basic Usage
 
 ```python
->>> from dateperiods import DatePeriod
->>> DatePeriod([2020, 10, 1], [2021, 4, 30])
+>> > from src.dateperiods import DatePeriod
+>> > DatePeriod([2020, 10, 1], [2021, 4, 30])
 DatePeriod:
-         tcs: 2020-10-01 00:00:00
-         tce: 2021-04-30 23:59:59.999999
+tcs: 2020 - 10 - 01
+00: 00:00
+tce: 2021 - 04 - 30
+23: 59:59.999999
 ```
 
 but auto-completion of input arguments is also possible. E.g., the statement above is equivalent to: 
@@ -95,11 +97,11 @@ The return value of `get_segments()` is a python iterator with each item is a `D
 ### Exclusion Rules
 
 A `DatePeriod` can be defined with rules that define if segments should be 
-excluded from the `PeriodIterator`. E.g. 
+excluded from the `PeriodIterator`. E.g.
 
 ```python
->>> from dateperiods import ExcludeMonth
->>> period_exc = DatePeriod([2020, 9, 1], [2021, 5, 31], exclude_rules=ExcludeMonth([5, 9]))
+>> > from src.dateperiods import ExcludeMonth
+>> > period_exc = DatePeriod([2020, 9, 1], [2021, 5, 31], exclude_rules=ExcludeMonth([5, 9]))
 ```
 will ensure that the month of September 2020 and May 2021, will not be part
 of the monthly sub-periods: 
@@ -117,11 +119,11 @@ PeriodIterator:
 
 See the [release page](https://github.com/shendric/dateperiods/releases) of this project for the latest version of `dateperiods` and install either from the main branch
 
-`pip install "git+https://github.com/shendric/dateperiods.git`
+`pip install "dateperiods@git+https://github.com/shendric/dateperiods.git`
 
 of for a specific verion
 
-`pip install "git+https://github.com/shendric/dateperiods.git@1.1.0`
+`pip install "dateperiods@git+https://github.com/shendric/dateperiods.git@1.1.0`
 
 ## Copyright Statements
 

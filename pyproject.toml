@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dateperiods"
+description = "Managing date-based time periods in python"
+readme = "README.md"
+version = "1.4.0"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+keywords = []
+authors = [
+  { name = "Stefan Hendricks", email = "stefan.hendricks@awi.de" },
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+
+]
+
+dependencies = [
+    "cftime",
+    "isodate",
+    "numpy",
+    "python-dateutil",
+]
+
+[project.optional-dependencies]
+
+dev = [
+    "flake8",
+    "isort",
+    "mypy",
+    "flake8",
+]
+
+[project.urls]
+Homepage = "https://github.com/pysiral/dateperiods"
+Documentation = "https://github.com/pysiral/dateperiods"
+Issues = "https://github.com/pysiral/dateperiods/issues"
+Source = "https://github.com/pysiral/dateperiods"

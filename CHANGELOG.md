@@ -1,5 +1,12 @@
 # History of changes
 
+## [1.4.0] 2025-09-04
+
+### Changed
+- Replace legacy setup.py bdist_wheel mechanism by using `pyproject.toml` only. (https://github.com/pypa/pip/issues/6334)
+- Python compability tests now from python 3.10 to 3.13 (was 3.7 to 3.11)
+- Moved package code to `src` folder
+
 ## [1.3.0] 2024-07-22
 
 ### Added
