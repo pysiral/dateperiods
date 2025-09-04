@@ -2,10 +2,21 @@
 
 ## [1.4.0] 2025-09-04
 
+### Added
+- Support for python 3.13
+- `dateperiod.Dateperiods`: 
+  - input data type str ("2024", "2024-09", "2024-09-01")
+  - definition level now remembers whether input was year, month or day
+
 ### Changed
 - Replace legacy setup.py bdist_wheel mechanism by using `pyproject.toml` only. (https://github.com/pypa/pip/issues/6334)
 - Python compability tests now from python 3.10 to 3.13 (was 3.7 to 3.11)
 - Moved package code to `src` folder
+- Duration definition now accepts more keywords (e.g. `daily`, `day`, `P1D` are all equivalent and mean `P1D`)
+
+### Removed
+- support for python <= 3.9 (will likely work for python 3.8, 3.9 but not tested nor supported)
+- property `type` from `dateperiod.DurationType` (redundant information)
 
 ## [1.3.0] 2024-07-22
 
