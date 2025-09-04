@@ -9,7 +9,7 @@ from typing import Dict, List, Tuple, Union, Optional
 
 import re
 import copy
-from enum import StrEnum
+from enum import Enum
 import cftime
 import numpy as np
 
@@ -31,7 +31,7 @@ __author_email__ = "stefan.hendricks@awi.de"
 __all__ = ["DatePeriod", "PeriodIterator", "DateDefinition", "DateDurationType", "ExcludeMonth"]
 
 
-class DateDurationType(StrEnum):
+class DateDurationType(Enum, str):
     DAY = "P1D"
     ISOWEEK = "ISOWEEK"
     MONTH = "P1M"
