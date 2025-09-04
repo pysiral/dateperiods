@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from datetime import datetime
+from datetime import datetime, date
 
 from context import dateperiods
 from dateutil.relativedelta import relativedelta
@@ -10,11 +10,50 @@ from dateutil.relativedelta import relativedelta
 class BasicFunctionalityTestSuite(unittest.TestCase):
     """A standard list of test cases """
 
-    def test_date_int_list_len(self):
+    def test_input_int_len(self):
         self.assertRaises(ValueError, dateperiods.DatePeriod, [])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [], [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, None, [2018, 4, 1])
         self.assertRaises(ValueError, dateperiods.DatePeriod, [2018, 4, 1, 1], [2018, 4, 1])
+
+    def test_input_str(self):
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "a")
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "2O18")           # <- that is a letter O, not a zero
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "3018")           # year out of range (999 < year < 3000)
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "2018-13")        # month out of range
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "2018-00")        # month out of range
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "2018-04-31")     # day out of range
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "2018-04-30T12:00:00")  # not a date
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "2018-")          # month missing
+        self.assertRaises(ValueError, dateperiods.DatePeriod, "2018-04-")       # day missing
+
+    def test_equal_results_all_input_types(self):
+        different_input_types = [
+            dateperiods.DatePeriod([2018, 4]),
+            dateperiods.DatePeriod([2018, 4], [2018, 4]),
+            dateperiods.DatePeriod("2018-04"),
+            dateperiods.DatePeriod("2018-04", "2018-04"),
+            dateperiods.DatePeriod("2018-04-01", "2018-04-30"),
+            dateperiods.DatePeriod(date(2018, 4, 1), date(2018, 4, 30)),
+            dateperiods.DatePeriod(datetime(2018, 4, 1), datetime(2018, 4, 30)),
+        ]
+        start_dates = [prd.tcs.date for prd in different_input_types]
+        end_dates = [prd.tce.date for prd in different_input_types]
+        self.assertEqual(len(set(start_dates)), 1)
+        self.assertEqual(len(set(end_dates)), 1)
+
+    def test_definition_level(self):
+        self.assertEqual("P1Y", dateperiods.DatePeriod("2018").definition_level.value)
+        self.assertEqual("P1M", dateperiods.DatePeriod("2018-04").definition_level.value)
+        self.assertEqual("P1D", dateperiods.DatePeriod("2018-04-01").definition_level.value)
+        self.assertEqual("P1Y", dateperiods.DatePeriod([2018]).definition_level.value)
+        self.assertEqual("P1M", dateperiods.DatePeriod([2018, 4]).definition_level.value)
+        self.assertEqual("P1D", dateperiods.DatePeriod([2018, 4, 1]).definition_level.value)
+        self.assertEqual("P1D", dateperiods.DatePeriod(date(2018, 4, 1)).definition_level.value)
+
+        self.assertEqual("P1M", dateperiods.DatePeriod("2018", "2018-04").definition_level.value)
+        self.assertEqual("P1D", dateperiods.DatePeriod("2018", "2018-04-01").definition_level.value)
+        self.assertEqual("P1D", dateperiods.DatePeriod("2018-04", "2018-04-01").definition_level.value)
 
     def test_date_flags(self):
         prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
@@ -60,8 +99,7 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_month)
-        self.assertEqual(duration.isoformat, "P1Y")
-        self.assertEqual(duration.type, "year")
+        self.assertEqual("P1Y", duration.isoformat)
 
     def test_duration_years(self):
         prd = dateperiods.DatePeriod([2018, 10], [2020, 9])
@@ -70,8 +108,7 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_year)
-        self.assertEqual(duration.isoformat, "P2Y")
-        self.assertEqual(duration.type, "custom")
+        self.assertEqual("P2Y", duration.isoformat)
 
     def test_duration_month(self):
         prd = dateperiods.DatePeriod([2018, 4], [2018, 4])
@@ -80,8 +117,7 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_year)
-        self.assertEqual(duration.isoformat, "P1M")
-        self.assertEqual(duration.type, "month")
+        self.assertEqual("P1M", duration.isoformat)
 
     def test_duration_months(self):
         prd = dateperiods.DatePeriod([2018, 10], [2019, 4])
@@ -90,8 +126,7 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_year)
-        self.assertEqual(duration.isoformat, "P7M")
-        self.assertEqual(duration.type, "custom")
+        self.assertEqual("P7M", duration.isoformat)
 
     def test_duration_isoweek(self):
         prd = dateperiods.DatePeriod([2018, 4, 2], [2018, 4, 8])
@@ -100,8 +135,7 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_day)
         self.assertFalse(duration.is_month)
         self.assertFalse(duration.is_year)
-        self.assertEqual(duration.isoformat, "P7D")
-        self.assertEqual(duration.type, "isoweek")
+        self.assertEqual("P7D", duration.isoformat, )
 
     def test_duration_day(self):
         prd = dateperiods.DatePeriod([2018, 4, 1], [2018, 4, 1])
@@ -110,8 +144,7 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_month)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_year)
-        self.assertEqual(duration.isoformat, "P1D")
-        self.assertEqual(duration.type, "day")
+        self.assertEqual("P1D", duration.isoformat)
 
     def test_duration_custom(self):
         prd = dateperiods.DatePeriod([2018, 4, 1], [2018, 4, 2])
@@ -120,8 +153,7 @@ class DurationFunctionalityTestSuite(unittest.TestCase):
         self.assertFalse(duration.is_month)
         self.assertFalse(duration.is_isoweek)
         self.assertFalse(duration.is_year)
-        self.assertEqual(duration.isoformat, "P2D")
-        self.assertEqual(duration.type, "custom")
+        self.assertEqual("P2D", duration.isoformat)
 
 
 class OverlapFunctionalityTestSuite(unittest.TestCase):

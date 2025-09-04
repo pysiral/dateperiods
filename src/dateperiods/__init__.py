@@ -13,7 +13,7 @@ from enum import StrEnum
 import cftime
 import numpy as np
 
-from typing import Literal
+from typing import Literal, Any
 
 from datetime import date, datetime, timedelta
 
@@ -28,23 +28,22 @@ __author__ = "Stefan Hendricks"
 __author_email__ = "stefan.hendricks@awi.de"
 
 # Imports
-__all__ = ["DatePeriod", "PeriodIterator", "DateDefinition", "DateDuration"]
+__all__ = ["DatePeriod", "PeriodIterator", "DateDefinition", "DateDurationType", "ExcludeMonth"]
 
 
 class DateDurationType(StrEnum):
-    YEAR = "P1Y"
-    MONTH = "P1M"
-    ISOWEEK = "ISOWEEK"
     DAY = "P1D"
-    YEARLY = "P1Y"
-    MONTHLY = "P1M"
-    ISOWEEKLY = "ISOWEEK"
+    ISOWEEK = "ISOWEEK"
+    MONTH = "P1M"
+    YEAR = "P1Y"
     DAILY = "P1D"
-    P1Y = "P1Y"
+    ISOWEEKLY = "ISOWEEK"
+    MONTHLY = "P1M"
+    YEARLY = "P1Y"
+    P1D = "P1D"
     P7D = "P7D"
     P1M = "P1M"
-    P1D = "P1D"
-
+    P1Y = "P1Y"
 
 
 class ExcludeRuleNotSet(object):
@@ -119,8 +118,8 @@ class DatePeriod(object):
         :param tcs_def: The definition for the start of the time coverage.
         :param tce_def: The definition for the end of the time coverage.
 
-        :param unit:
-        :param calendar_name:
+        :param unit: cftime style unit definition. Default is "seconds since 1970-01-01"
+        :param calendar_name: cftime style calendar name. Default is "standard"
         """
 
         # Process the input date definitions
@@ -164,7 +163,8 @@ class DatePeriod(object):
 
         :param duration_type:
         :param crop_to_period:
-        :return:
+
+        :return: DatePeriod Iterator
         """
 
         # Input validation
@@ -175,9 +175,13 @@ class DatePeriod(object):
         if not isinstance(duration_type, str):
             msg = f"duration_type must be of type str, was {type(duration_type)}"
             raise ValueError(msg)
+        try:
+            duration_type_flag = DateDurationType[duration_type.upper()]
+        except KeyError as ke:
+            raise ValueError(f"Invalid duration_type: {duration_type} [{DateDurationType}]") from ke
 
         # NOTE: Sanity Check of input args will be done in the PeriodIterator instance
-        prditer = PeriodIterator(self, duration_type.upper())
+        prditer = PeriodIterator(self, duration_type_flag)
 
         # Crop to the period of this instance. This means practically to limit the
         # duration of the iterator segments to the start and end date of this
@@ -293,6 +297,18 @@ class DatePeriod(object):
     def calendar(self) -> str:
         return str(self._calendar)
 
+    @property
+    def definition_level(self) -> DateDurationType:
+        """
+        The smalles definition level (year, month or day) for the periods bounds
+
+        :return: DateDurationType
+        """
+        definitions_levels = [self.tcs.definition_level, self.tce.definition_level]
+        if len(set(definitions_levels)) == 1:
+            return definitions_levels[0]
+        return min(definitions_levels, key=lambda dl: list(DateDurationType).index(dl))
+
     def __repr__(self) -> str:
         output = "DatePeriod:\n"
         for field in ["tcs", "tce", "exclude_rule"]:
@@ -309,12 +325,13 @@ class PeriodIterator(object):
 
     def __init__(self,
                  base_period: "DatePeriod",
-                 segment_duration: str
+                 segment_duration: DateDurationType,
                  ) -> None:
         """
         Create an iterator over a segment of a base period with a given duration
-        :param base_period:
-        :param segment_duration:
+
+        :param base_period: The period to be segmented
+        :param segment_duration: The period length of each segment.
         """
 
         # Store args
@@ -566,7 +583,7 @@ class PeriodIterator(object):
 
     @property
     def valid_segment_duration(self) -> List[str]:
-        return [v for v in DateDurationType]
+        return [v.value for v in DateDurationType]
 
     @property
     def n_periods(self) -> int:
@@ -663,7 +680,7 @@ class DateDefinition(object):
         elif isinstance(self._date_def, (list, tuple)):
             year, month, day, definition_level = self._decode_int_list(self._date_def, self.type)
 
-        if isinstance(self._date_def, str):
+        elif isinstance(self._date_def, str):
             year, month, day, definition_level = self._decode_str(self._date_def, self.type)
 
         # date definition is neither of the previous instances
@@ -723,7 +740,7 @@ class DateDefinition(object):
         # All done, return the values
         return year, month, day, definition_level
 
-    def _decode_str_list(self, date_def_str: str, tcs_or_tce: str) -> Tuple[int, int, int, DateDurationType]:
+    def _decode_str(self, date_def_str: str, tcs_or_tce: str) -> Tuple[int, int, int, DateDurationType]:
         """
         Returns a datetime object from a date str of type yyyy[-mm[-dd]].
         The datetime object will point to the first microsecond of the day for the
@@ -731,7 +748,7 @@ class DateDefinition(object):
         """
 
         # Validate input with regex (string must match [yyyy[-mm[-dd]]])
-        str_pattern = r"^[1-2]\d{3}(-[0-1]\d(-[0-3]\d})?)?$"
+        str_pattern = r"^[1-2]\d{3}(-[0-1]\d(-[0-3]\d)?)?$"
         if not re.match(str_pattern, date_def_str):
             msg = f"Invalid string date definition: {date_def_str} -> yyyy[-mm[-dd]]"
             raise ValueError(msg)
@@ -892,9 +909,6 @@ class DateDefinition(object):
         return output
 
 
-DurationType = Literal["year", "month", "isoweek", "day", "custom"]
-
-
 class DateDuration(object):
     """
     Container for duration parameters of the period between two dates
@@ -1018,31 +1032,10 @@ class DateDuration(object):
     def isoformat(self) -> str:
         return duration_isoformat(self.duration)
 
-    @property
-    def type(self) -> DurationType:
-        """
-        Return a classifier that indicates the period duration type
-        (e.g. year, month, isoweek, day, custom)
-
-        :return: Name of the period type
-        """
-        period_fixed_types: List[Tuple[bool, DurationType]] = [
-            (self.is_year, "year"),
-            (self.is_month, "month"),
-            (self.is_isoweek, "isoweek"),
-            (self.is_day, "day"),
-        ]
-        # sourcery skip: use-next
-        for condition, period_type in period_fixed_types:
-            if condition:
-                return period_type
-        return "custom"
-
     def __repr__(self):
         output = "DateDuration:\n"
         fields = [
             "isoformat",
-            "type",
             "total_days",
             "is_day",
             "is_isoweek",
