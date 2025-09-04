@@ -10,10 +10,7 @@ from typing import Dict, List, Tuple, Union, Optional
 import cftime
 import numpy as np
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Literal
 
 from datetime import date, datetime, timedelta
 
