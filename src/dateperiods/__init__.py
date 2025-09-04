@@ -7,6 +7,9 @@
 import calendar
 from typing import Dict, List, Tuple, Union, Optional
 
+import re
+import copy
+from enum import StrEnum
 import cftime
 import numpy as np
 
@@ -26,6 +29,22 @@ __author_email__ = "stefan.hendricks@awi.de"
 
 # Imports
 __all__ = ["DatePeriod", "PeriodIterator", "DateDefinition", "DateDuration"]
+
+
+class DateDurationType(StrEnum):
+    YEAR = "P1Y"
+    MONTH = "P1M"
+    ISOWEEK = "ISOWEEK"
+    DAY = "P1D"
+    YEARLY = "P1Y"
+    MONTHLY = "P1M"
+    ISOWEEKLY = "ISOWEEK"
+    DAILY = "P1D"
+    P1Y = "P1Y"
+    P7D = "P7D"
+    P1M = "P1M"
+    P1D = "P1D"
+
 
 
 class ExcludeRuleNotSet(object):
@@ -80,8 +99,8 @@ class DatePeriod(object):
 
     def __init__(
         self,
-        tcs_def: Union[List[int], "datetime", "date"],
-        tce_def: Union[List[int], "datetime", "date"] = None,
+        tcs_def: Union[List[int], str, "datetime", "date"],
+        tce_def: Union[List[int], str, "datetime", "date"] = None,
         exclude_rule: Optional[ExcludeMonth] = None,
         unit: Optional[str] = None,
         calendar_name: Optional[str] = None
@@ -111,7 +130,7 @@ class DatePeriod(object):
         # if time coverage end is omitted, use time coverage start as the definition
         # of the period.
         if tce_def is None:
-            tce_def = tcs_def
+            tce_def = copy.copy(tcs_def)
 
         self._tcs = DateDefinition(tcs_def, "tcs", unit=self._unit, calendar_name=self._calendar)
         self._tce = DateDefinition(tce_def, "tce", unit=self._unit, calendar_name=self._calendar)
@@ -133,7 +152,7 @@ class DatePeriod(object):
         """
         return f"{self.tcs.dt.strftime(dt_fmt)}_{self.tce.dt.strftime(dt_fmt)}"
 
-    def get_segments(self, duration_type: str, crop_to_period=False) -> "PeriodIterator":
+    def get_segments(self, duration_type: str, crop_to_period: bool = False) -> "PeriodIterator":
         """
         Return an iterator that divides the period into the segments with the specified duration.
         The iterations will be of type DatePeriod. If a duration is longer than the duration of the
@@ -153,8 +172,12 @@ class DatePeriod(object):
             msg = f"Keyword `limit_to_period` must be `True`or `False` (bool), was {crop_to_period}"
             raise ValueError(msg)
 
+        if not isinstance(duration_type, str):
+            msg = f"duration_type must be of type str, was {type(duration_type)}"
+            raise ValueError(msg)
+
         # NOTE: Sanity Check of input args will be done in the PeriodIterator instance
-        prditer = PeriodIterator(self, duration_type)
+        prditer = PeriodIterator(self, duration_type.upper())
 
         # Crop to the period of this instance. This means practically to limit the
         # duration of the iterator segments to the start and end date of this
@@ -357,10 +380,10 @@ class PeriodIterator(object):
         :return:
         """
         funcs = dict(
-            day=self.get_day_segments,
-            isoweek=self.get_isoweek_segments,
-            month=self.get_month_segments,
-            year=self.get_year_segments
+            P1D=self.get_day_segments,
+            ISOWEEK=self.get_isoweek_segments,
+            P1M=self.get_month_segments,
+            P1Y=self.get_year_segments
         )
         base_tcs, base_tce = self.base_period.tcs.dt, self.base_period.tce.dt
         self._segment_list.extend(funcs[self.segment_duration](base_tcs, base_tce, self.base_period.exclude_rule))
@@ -543,7 +566,7 @@ class PeriodIterator(object):
 
     @property
     def valid_segment_duration(self) -> List[str]:
-        return ["year", "month", "isoweek", "day"]
+        return [v for v in DateDurationType]
 
     @property
     def n_periods(self) -> int:
@@ -596,7 +619,7 @@ class DateDefinition(object):
     """
 
     def __init__(self,
-                 date_def: Union[List[int], "datetime", "date"],
+                 date_def: Union[List[int], str, "datetime", "date"],
                  tcs_or_tce: Literal["tcs", "tce"],
                  unit: Optional[str] = None,
                  calendar_name: Optional[str] = None
@@ -615,6 +638,7 @@ class DateDefinition(object):
         self._year = None
         self._month = None
         self._day = None
+        self._definition_level = None
 
         # Decode the input date definition and store the result in the
         # main year, month, day class properties
@@ -631,12 +655,16 @@ class DateDefinition(object):
         datetime_like = (datetime, date, cftime.DatetimeGregorian, cftime.datetime, cftime.real_datetime)
         if isinstance(self._date_def, datetime_like):
             year, month, day = self._date_def.year, self._date_def.month, self._date_def.day
+            definition_level = DateDurationType.P1D
 
         # date definition is a list or tuple
         # -> the list may contain year, [month], [day] with month and day may be generated
         # based on the tcs_or_tce property
         elif isinstance(self._date_def, (list, tuple)):
-            year, month, day = self._decode_int_list(self._date_def, self.type)
+            year, month, day, definition_level = self._decode_int_list(self._date_def, self.type)
+
+        if isinstance(self._date_def, str):
+            year, month, day, definition_level = self._decode_str(self._date_def, self.type)
 
         # date definition is neither of the previous instances
         # -> raise ValueError
@@ -649,9 +677,10 @@ class DateDefinition(object):
         self._year = year
         self._month = month
         self._day = day
+        self._definition_level = definition_level
 
     @staticmethod
-    def _decode_int_list(int_list: List[int], tcs_or_tce: str) -> Tuple[int, int, int]:
+    def _decode_int_list(int_list: List[int], tcs_or_tce: str) -> Tuple[int, int, int, DateDurationType]:
         """
         Returns a datetime object from an integer date list of type [yyyy, mm, [dd]].
         The datetime object will point to the first microsecond of the day for the
@@ -663,6 +692,9 @@ class DateDefinition(object):
         if n_entries < 1 or n_entries > 3:
             msg = f"Invalid integer date definition: {int_list} -> (year, [month], [day]"
             raise ValueError(msg)
+
+        definition_level_map = {1: DateDurationType.P1Y, 2: DateDurationType.P1M, 3: DateDurationType.P1D}
+        definition_level = definition_level_map[n_entries]
 
         # Autofill integer list if day or month+day are omitted
         # -> in this case the date will be either the beginning or the end of the either monthly or yearly period
@@ -689,7 +721,24 @@ class DateDefinition(object):
             raise ValueError(msg) from e
 
         # All done, return the values
-        return year, month, day
+        return year, month, day, definition_level
+
+    def _decode_str_list(self, date_def_str: str, tcs_or_tce: str) -> Tuple[int, int, int, DateDurationType]:
+        """
+        Returns a datetime object from a date str of type yyyy[-mm[-dd]].
+        The datetime object will point to the first microsecond of the day for the
+        start time (start_or_stop := "start") or the last microsecond
+        """
+
+        # Validate input with regex (string must match [yyyy[-mm[-dd]]])
+        str_pattern = r"^[1-2]\d{3}(-[0-1]\d(-[0-3]\d})?)?$"
+        if not re.match(str_pattern, date_def_str):
+            msg = f"Invalid string date definition: {date_def_str} -> yyyy[-mm[-dd]]"
+            raise ValueError(msg)
+
+        # Split the string into its components
+        int_list = [int(v) for v in date_def_str.split("-")]
+        return self._decode_int_list(int_list, tcs_or_tce)
 
     @property
     def isoformat(self) -> str:
@@ -822,15 +871,20 @@ class DateDefinition(object):
     def calendar(self) -> str:
         return str(self._calendar)
 
+    @property
+    def definition_level(self) -> DateDurationType:
+        return self._definition_level
+
     def __repr__(self):
         output = "DateDefinition:\n"
         fields = [
             "isoformat",
+            "definition_level",
             "type",
             "is_monday",
             "is_sunday",
             "is_first_day_of_month",
-            "is_last_day_of_month"
+            "is_last_day_of_month",
         ]
         for field in fields:
             output += "%24s: %s" % (field, getattr(self, field))
